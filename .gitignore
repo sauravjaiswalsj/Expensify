@@ -1,0 +1,107 @@
+HELP.md
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+resource/
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### VS Code ###
+.vscode/
+# Compiled class files
+*.class
+
+# Logs
+*.log
+logs/
+*.pid
+*.docs
+docs/
+# Spring Boot specific
+*.jar
+*.war
+
+# Environment-specific properties
+application.yml
+application.properties
+application-*.yml
+application-*.properties
+application-dev.yml
+application-prod.yml
+application-dumps.yml
+
+# Secret env files
+.env
+.env.*
+
+# IDE-specific files
+# IntelliJ
+.idea/
+out/
+
+# Eclipse
+.settings/
+bin/
+
+# VS Code
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Maven wrapper
+.mvn/
+!/.mvn/wrapper/maven-wrapper.jar
+mvnw
+mvnw.cmd
+
+# Gradle
+.gradle/
+
+!gradle/wrapper/gradle-wrapper.jar
+gradlew
+gradlew.bat
+
+# Test reports
+test-output/
+surefire-reports/
+jacoco.exec
+
+# Docker
+docker-compose.override.yml
+docker-compose.*.yml
+Dockerfile.*
+
+# Backup files
+*.swp
+*.bak
+*~
+
+# GitHub-specific
+.github/
+
+# Node modules (in case of frontend in same project)
+node_modules/
