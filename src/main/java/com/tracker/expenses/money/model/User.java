@@ -1,5 +1,6 @@
 package com.tracker.expenses.money.model;
 
+import com.tracker.expenses.money.enums.Role;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -55,5 +56,5 @@ public class User {
     @DBRef
     private List<Expense> expenses = new ArrayList<>();
     @Schema(description = "This is the user role.", example = "USER")
-    private List<String> roles;
+    private Role role;
 }

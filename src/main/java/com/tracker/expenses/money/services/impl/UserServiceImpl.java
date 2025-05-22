@@ -1,6 +1,7 @@
 package com.tracker.expenses.money.services.impl;
 
 import com.tracker.expenses.money.dto.userDTO.PasswordResetDTO;
+import com.tracker.expenses.money.enums.Role;
 import com.tracker.expenses.money.services.UserService;
 import com.tracker.expenses.money.services.business.UserServiceBusiness;
 import com.tracker.expenses.money.dto.Response;
@@ -52,6 +53,7 @@ public class UserServiceImpl implements UserService {
         try{
             isUserValid(user);
             user.setPassword(passwordEncoder.encode(user.getPassword()));
+            user.setRole(Role.USER);
             User res =  userRepository.save(user);
 
             return new Response<>(new ResponseHeader(HttpStatus.CREATED, "User created successfully"), res);
