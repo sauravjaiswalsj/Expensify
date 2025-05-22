@@ -113,13 +113,19 @@ public class UserServiceImpl implements UserService {
             if (userdata == null){
                 throw new UsernameNotFoundException("User does not exist");
             }
-            if (user.getPassword() != null){
-                user.setPassword(passwordEncoder.encode(user.getPassword()));
+            if (user.getEmail() != null){
+                userServiceBusiness.isEmailValid(user.getEmail());
+                userdata.setEmail(user.getEmail());
             }
-            var res = userRepository.save(user);
+            if (user.getPassword() != null){
+                userdata.setPassword(passwordEncoder.encode(user.getPassword()));
+            }
+            var res = userRepository.save(userdata);
             return new Response<>(new ResponseHeader(HttpStatus.OK, "User successfully updated"), res);
         }catch (UsernameNotFoundException ex){
             return new Response<>(new ResponseHeader(HttpStatus.NOT_FOUND, ex.getMessage()), user);
+        }catch (InvalidEmailException ex){
+            return new Response<>(new ResponseHeader(HttpStatus.BAD_REQUEST, ex.getMessage()), user);
         }catch (Exception ex){
             return new Response<>(new ResponseHeader(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage()), user);
         }
