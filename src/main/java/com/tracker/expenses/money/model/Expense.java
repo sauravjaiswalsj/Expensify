@@ -1,5 +1,6 @@
 package com.tracker.expenses.money.model;
 
+import com.tracker.expenses.money.enums.Currency;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import jakarta.persistence.*;
@@ -42,4 +43,6 @@ public class Expense {
     @Schema(description = "This is the updated time of the expense")
     private Date updatedAt;
 
+    @Schema(description = "This is the currency.", example = "INR", _const = "INR")
+    private Currency currency;
 }

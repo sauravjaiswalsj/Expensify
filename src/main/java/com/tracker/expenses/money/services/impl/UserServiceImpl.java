@@ -1,6 +1,7 @@
 package com.tracker.expenses.money.services.impl;
 
 import com.tracker.expenses.money.dto.userDTO.PasswordResetDTO;
+import com.tracker.expenses.money.dto.userDTO.RegisterDTO;
 import com.tracker.expenses.money.enums.Role;
 import com.tracker.expenses.money.services.UserService;
 import com.tracker.expenses.money.services.business.UserServiceBusiness;
@@ -18,7 +19,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import static com.tracker.expenses.money.common.GetCurrentTime.convertLocalDateTimeToDate;
 import java.util.List;
 
 @Service
@@ -49,22 +50,24 @@ public class UserServiceImpl implements UserService {
         return userRepository.findByEmail(email);
     }
 
-    public Response<ResponseHeader, User> addUser(User user){
-        try{
-            isUserValid(user);
-            user.setPassword(passwordEncoder.encode(user.getPassword()));
-            user.setRole(Role.USER);
-            User res =  userRepository.save(user);
+    @Transactional
+    public Response<ResponseHeader, User> addUser(RegisterDTO registerDTO){
+        User user = new User(
+                registerDTO.getUsername(),
+                registerDTO.getPassword(),
+                registerDTO.getFirstName(),
+                registerDTO.getLastName(),
+                registerDTO.getEmail()
+        );
 
-            return new Response<>(new ResponseHeader(HttpStatus.CREATED, "User created successfully"), res);
+        isUserValid(user);
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        user.setRole(Role.USER);
+        user.setCreatedAt(convertLocalDateTimeToDate());
+        user.setUpdatedAt(convertLocalDateTimeToDate());
+        User res =  userRepository.save(user);
 
-        }catch (UserAlreadyExistsException e){
-            return new Response<>(new ResponseHeader(HttpStatus.CONFLICT, e.getMessage()), user);
-        }catch (InvalidUserLength | InvalidEmailException ex){
-            return new Response<>(new ResponseHeader(HttpStatus.BAD_REQUEST, ex.getMessage()), user);
-        } catch (Exception ex){
-            return new Response<>(new ResponseHeader(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage()), user);
-        }
+        return new Response<>(new ResponseHeader(HttpStatus.CREATED, "User created successfully"), res);
     }
 
     public List<User> findAll(){

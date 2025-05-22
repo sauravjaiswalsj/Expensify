@@ -31,6 +31,7 @@ public class User {
     @Indexed(unique = true)
     private String username;
 
+    @NotNull
     @Schema(description = "This is the password of the person")
     private String password;
 
@@ -50,11 +51,16 @@ public class User {
     @Schema(description = "This is the updated time of the person")
     private Date updatedAt;
 
-    @Schema(description = "This is the currency.", example = "INR", _const = "INR")
-    private final String currency = "INR";
-
     @DBRef
     private List<Expense> expenses = new ArrayList<>();
     @Schema(description = "This is the user role.", example = "USER")
     private Role role;
+
+    public User(String username, String password, String firstName, String lastName, String email) {
+        this.username = username;
+        this.password = password;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.email = email;
+    }
 }
