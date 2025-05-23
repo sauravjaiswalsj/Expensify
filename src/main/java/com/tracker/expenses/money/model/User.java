@@ -62,6 +62,7 @@ public class User {
     @DBRef
     private List<Expense> expenses = new ArrayList<>();
     @Schema(description = "This is the user role.", example = "USER")
+    @NotNull
     private Role role;
 
     public User(String username, String password, String firstName, String lastName, String email) {

@@ -1,6 +1,7 @@
 package com.tracker.expenses.money.config.security;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
@@ -43,7 +44,7 @@ public class JwtService {
 
     protected Key getSignInKey() {
         if (secretKey == null || secretKey.trim().isEmpty()) {
-            log.info("JWT Secret Key is not set {}", secretKey);
+            log.info("JWT Secret Key is not set");
         }
 //        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
 //        return Keys.hmacShaKeyFor(keyBytes);
@@ -57,13 +58,17 @@ public class JwtService {
     }
 
     private String createToken(Map<String, Object> claims, String username, long expiration){
-        return Jwts.builder()
-                .setClaims(claims)
-                .setSubject(username)
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + expiration))
-                .signWith(getSignInKey(), SignatureAlgorithm.HS256)
-                .compact();
+        try {
+            return Jwts.builder()
+                    .setClaims(claims)
+                    .setSubject(username)
+                    .setIssuedAt(new Date(System.currentTimeMillis()))
+                    .setExpiration(new Date(System.currentTimeMillis() + expiration))
+                    .signWith(getSignInKey(), SignatureAlgorithm.HS256)
+                    .compact();
+        }catch (Exception ex){
+            throw new JwtException("Invalid JWT token", ex);
+        }
     }
 
     private boolean isTokenExpired(String token){
@@ -76,7 +81,7 @@ public class JwtService {
 
     public boolean validateToken(String token, UserDetails userDetails){
         final String username = extractUsername(token);
-        return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
+        return (username != null && username.equals(userDetails.getUsername()) && !isTokenExpired(token));
     }
 
     public long getExpirationTime() {

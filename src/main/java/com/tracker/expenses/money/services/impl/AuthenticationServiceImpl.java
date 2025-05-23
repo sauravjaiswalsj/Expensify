@@ -27,12 +27,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     public UserDetails authenticateUser(LoginDTO loginDTO) {
         try{
-            var authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
+            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
                     loginDTO.getUsername(), loginDTO.getPassword()));
-            if (!authentication.isAuthenticated()){
-                log.error("User {} not authenticated", loginDTO.getUsername());
-                throw new BadCredentialsException("Invalid credentials");
-            }
+
             log.info("User {} authenticated successfully", loginDTO.getUsername());
             return userDetailedServiceImpl.loadUserByUsername(loginDTO.getUsername());
         }catch(BadCredentialsException e){
