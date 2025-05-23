@@ -2,22 +2,25 @@ package com.tracker.expenses.money.services.impl;
 
 import com.tracker.expenses.money.common.GenerateCodes;
 import com.tracker.expenses.money.common.Validation;
-import com.tracker.expenses.money.dto.userDTO.PasswordResetDTO;
-import com.tracker.expenses.money.dto.userDTO.RegisterDTO;
+import com.tracker.expenses.money.dto.userdto.LoginDTO;
+import com.tracker.expenses.money.dto.userdto.PasswordResetDTO;
+import com.tracker.expenses.money.dto.userdto.UserDTO;
+import com.tracker.expenses.money.dto.userdto.VerifyUserDTO;
 import com.tracker.expenses.money.enums.Role;
-import com.tracker.expenses.money.services.AuthenticationService;
+import com.tracker.expenses.money.exception.*;
 import com.tracker.expenses.money.services.EmailService;
 import com.tracker.expenses.money.services.UserService;
 import com.tracker.expenses.money.dto.Response;
 import com.tracker.expenses.money.dto.ResponseHeader;
-import com.tracker.expenses.money.exception.IncorrectPasswordException;
-import com.tracker.expenses.money.exception.InvalidEmailException;
-import com.tracker.expenses.money.exception.UserAlreadyExistsException;
 import com.tracker.expenses.money.model.User;
 import com.tracker.expenses.money.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -36,6 +39,8 @@ public class UserServiceImpl implements UserService {
     private EmailService emailService;
     @Autowired
     private PasswordEncoder passwordEncoder;
+    @Autowired
+    private AuthenticationManager authenticationManager;
 
     private void isUserValid(User user){
         String username = user.getUsername().toLowerCase();
@@ -57,13 +62,13 @@ public class UserServiceImpl implements UserService {
     }
 
     @Transactional
-    public Response<ResponseHeader, User> addUser(RegisterDTO registerDTO){
+    public Response<ResponseHeader, User> addUser(UserDTO userDTO){
         User user = new User(
-                registerDTO.getUsername(),
-                registerDTO.getPassword(),
-                registerDTO.getFirstName(),
-                registerDTO.getLastName(),
-                registerDTO.getEmail()
+                userDTO.getUsername(),
+                userDTO.getPassword(),
+                userDTO.getFirstName(),
+                userDTO.getLastName(),
+                userDTO.getEmail()
         );
 
         isUserValid(user);
@@ -89,24 +94,36 @@ public class UserServiceImpl implements UserService {
         return userRepository.findAll();
     }
 
-    public Response<ResponseHeader, User> verifyUser(User user){
-        try{
-             User res = findByUsername(user.getUsername());
-             if (res == null){
-                 throw new UsernameNotFoundException("User does not exist");
-             }
-
-             if (!res.getPassword().equals(user.getPassword())){
-                 throw new IncorrectPasswordException("Password is wrong");
-             }
-             return new Response<>(new ResponseHeader(HttpStatus.OK, "User verified successfully"), res);
-        }catch (UsernameNotFoundException ex){
-            return new Response<>(new ResponseHeader(HttpStatus.NOT_FOUND, ex.getMessage()), user);
-        }catch (IncorrectPasswordException ex){
-            return new Response<>(new ResponseHeader(HttpStatus.BAD_REQUEST, ex.getMessage()), user);
-        }catch (Exception ex){
-            return new Response<>(new ResponseHeader(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage()), user);
+    //TODO: add email based verification
+    @Transactional
+    public Response<ResponseHeader, Void> verifyUser(VerifyUserDTO verifyUserDTO){
+        if (verifyUserDTO.getUsername() == null || verifyUserDTO.getUsername().isEmpty()) {
+            throw new UsernameNotFoundException("Username is empty");
         }
+        User user = findByUsername(verifyUserDTO.getUsername());
+        if (user == null){
+            throw new UsernameNotFoundException("User does not exist");
+        }
+        if (user.isAccountVerified()){
+            throw new UserAlreadyVerifiedException("User already verified");
+        }
+        if (user.getVerificationCodeExpiresAt().isBefore(LocalDateTime.now())){
+            throw new VerificationCodeExpiredException("Verification code has expired");
+        }
+        if (!user.getVerificationCode().equals(verifyUserDTO.getVerificationCode())){
+            throw new VerificationCodeIncorrect("Verification code is incorrect");
+        }
+        else{
+            user.setAccountVerified(true);
+            user.setVerificationCode(null);
+            user.setVerificationCodeExpiresAt(null);
+            user.setUpdatedAt(convertLocalDateTimeToDate());
+            userRepository.save(user);
+
+            emailService.sendVerificationSuccessEmail(user.getEmail());
+            return new Response<>(new ResponseHeader(HttpStatus.OK, "User successfully verified"));
+        }
+
     }
 
     public Response<ResponseHeader, User> updatePassword(PasswordResetDTO passwordResetDTO){
@@ -149,5 +166,116 @@ public class UserServiceImpl implements UserService {
         }catch (Exception ex){
             return new Response<>(new ResponseHeader(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage()), user);
         }
+    }
+
+    public Response<ResponseHeader, Void> resendVerificationCode(String username){
+        if (username == null || username.isEmpty()) {
+            throw new UsernameNotFoundException("Username is empty");
+        }
+        User user = findByUsername(username);
+        if (user == null){
+            throw new UsernameNotFoundException("User does not exist");
+        }
+        if (user.isAccountVerified()){
+            throw new UserAlreadyVerifiedException("User already verified");
+        }
+        try {
+            if (user.getVerificationCodeExpiresAt().isBefore(LocalDateTime.now())){
+                user.setVerificationCode(GenerateCodes.generateVerificationCode());
+            }
+            String code = user.getVerificationCode().isEmpty() ? GenerateCodes.generateVerificationCode() : user.getVerificationCode();
+            emailService.sendVerificationEmail(user.getEmail(), code);
+        }catch (Exception ex){
+            log.error("Error sending verification email. Retrying...");
+            emailService.sendVerificationEmail(user.getEmail(), user.getVerificationCode());
+        }finally {
+            user.setVerificationCodeExpiresAt(LocalDateTime.now().plusMinutes(15));
+            userRepository.save(user);
+        }
+        return new Response<>(new ResponseHeader(HttpStatus.OK, "Verification code resent successfully"));
+    }
+
+
+    public UserDTO authenticateUser(LoginDTO loginDTO) {
+        try{
+            User user = findByUsername(loginDTO.getUsername());
+            if (user == null) {
+                throw new UsernameNotFoundException("User not found");
+            }
+            if (!user.isAccountVerified()) {
+                throw new UserNotVerifiedException("User not verified");
+            }
+
+            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
+                    loginDTO.getUsername(), loginDTO.getPassword()));
+
+            log.info("User {} authenticated successfully", loginDTO.getUsername());
+
+            return new UserDTO(
+                    user.getUsername(),
+                    user.getFirstName(),
+                    user.getLastName(),
+                    user.getEmail(),
+                    user.getRole().name()
+            );
+        } catch (UserNotVerifiedException ex) {
+            log.error("Verify user {}", loginDTO.getUsername());
+            throw new UserNotVerifiedException("User not Verified. Please verify your account.");
+        } catch(BadCredentialsException e){
+            log.error("Bad credentials for user {}", loginDTO.getUsername());
+            throw new BadCredentialsException("Invalid credentials.");
+        }
+        catch (UsernameNotFoundException e) {
+            log.error("User not found: {}", loginDTO.getUsername());
+            throw new UsernameNotFoundException("User not found.");
+        } catch (Exception e) {
+            log.error("Authentication error: {}", e.getMessage());
+            throw new AuthenticationException("Authentication failed.") {};
+        }
+    }
+
+    public Response<ResponseHeader, Void> forgetUserPassword(String username){
+            User user = findByUsername(username);
+            if (user == null){
+                throw new UsernameNotFoundException("User does not exist");
+            }
+            String code = GenerateCodes.generateVerificationCode();
+            user.setVerificationCode(code);
+            user.setVerificationCodeExpiresAt(LocalDateTime.now().plusHours(1));
+            userRepository.save(user);
+        try{
+            emailService.sendPasswordResetEmail(user.getEmail(), code);
+        }catch (RuntimeException ex){
+            log.error("Email Retrying...");
+            emailService.sendPasswordResetEmail(username,  code);
+        }
+        return new Response<>(new ResponseHeader(HttpStatus.OK, "Password reset code sent successfully"));
+    }
+
+    public Response<ResponseHeader, Void> resetForgetPassword(PasswordResetDTO passwordResetDTO){
+        User user = findByUsername(passwordResetDTO.getUsername());
+        if (user == null){
+            throw new UsernameNotFoundException("User does not exist");
+        }
+        if (!user.getVerificationCode().equals(passwordResetDTO.getVerificationCode())){
+            throw new VerificationCodeIncorrect("Verification code is incorrect");
+        }
+        if (user.getVerificationCodeExpiresAt().isBefore(LocalDateTime.now())){
+            throw new VerificationCodeExpiredException("Verification code has expired");
+        }
+        user.setPassword(passwordEncoder.encode(passwordResetDTO.getPassword()));
+        user.setVerificationCode(null);
+        user.setVerificationCodeExpiresAt(null);
+        user.setUpdatedAt(convertLocalDateTimeToDate());
+        userRepository.save(user);
+
+        try {
+            emailService.sendResetSuccessEmail(user.getEmail());
+        }catch (Exception ex){
+            log.error("Sending Email. Retrying...");
+            emailService.sendResetSuccessEmail(user.getEmail());
+        }
+        return new Response<>(new ResponseHeader(HttpStatus.OK, "Password successfully reset"));
+
     }
 }

@@ -1,7 +1,6 @@
 package com.tracker.expenses.money.controller.auth;
 
-import com.tracker.expenses.money.dto.ResponseHeader;
-import com.tracker.expenses.money.dto.userDTO.RegisterDTO;
+import com.tracker.expenses.money.dto.userdto.UserDTO;
 import com.tracker.expenses.money.exception.InvalidEmailException;
 import com.tracker.expenses.money.exception.InvalidUser;
 import com.tracker.expenses.money.exception.InvalidUserLength;
@@ -10,12 +9,12 @@ import com.tracker.expenses.money.services.UserService;
 import com.tracker.expenses.money.dto.Response;
 import com.tracker.expenses.money.model.User;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@RequestMapping("/auth")
 @RestController
 public class Register {
     @Autowired
@@ -27,7 +26,7 @@ public class Register {
     }
 
     @PostMapping("/signup")
-    public ResponseEntity<Response> register(@RequestBody RegisterDTO user) {
+    public ResponseEntity<Response> register(@RequestBody UserDTO user) {
         try{
             if (user == null) {
                 throw new InvalidUser("User is empty");

@@ -2,10 +2,8 @@ package com.tracker.expenses.money.model;
 
 import com.tracker.expenses.money.enums.Role;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import jakarta.validation.constraints.*;
+import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.DBRef;
@@ -24,45 +22,62 @@ import java.util.List;
 //@CompoundIndex(name = "user_idx", def = "{'username' : 1, 'email' : 1}", unique = true)
 public class User {
     @Id //this is the primary key.
-    @Schema(description = "The unique ID of the book", example = "1", hidden = true)
     private String _id;
 
-    @Schema(description = "This is the username of the person", example = "user@123")
+    @Schema(description = "User's unique username", example = "john_doe")
     @NotNull
+    @NotBlank(message = "username is required")
     @Indexed(unique = true)
+    @Size(min = 3, max = 50, message = "username must be between 3 and 20 characters long")
     private String username;
 
     @NotNull
-    @Schema(description = "This is the password of the person")
+    @NotBlank(message = "Password is required")
+    @Size(min = 4, message = "Password must be at least 8 characters long")
+    @Pattern(
+            regexp = "^(?=.*[0-9])(?=.*[a-zA-Z])(?=.*[@#$%^&+=!])(?=\\S+$).{4,}$",
+            message = "Password must contain at least one letter, one number, and one special character"
+    )
+    @Schema(description = "User's password", example = "StrongP@ss123")
     private String password;
 
-    @Schema(description = "This is the firstname of the person")
+    @NotBlank(message = "First name is required")
+    @Schema(description = "User's first name", example = "John")
     private String firstName;
 
-    @Schema(description = "This is the lastname of the person")
+    @NotBlank(message = "Last name is required")
+    @Schema(description = "User's last name", example = "Doe")
     private String lastName;
 
-    @Indexed(unique = true)
     @NotNull
-    @Schema(description = "This is the email of the person", example = "user-name@gmail.com",nullable = false)
+    @Indexed(unique = true)
+    @NotBlank(message = "Email is required")
+    @Email(message = "Email should be valid")
+    @Schema(description = "User's email address", example = "john.doe@example.com")
     private String email;
 
     @Schema(description = "This is the created time of the person")
     private Date createdAt;
+
     @Schema(description = "This is the updated time of the person")
     private Date updatedAt;
 
     @Schema(description = "verification_code")
     private String verificationCode;
+
     @Schema(description = "verification_expiration")
     private LocalDateTime verificationCodeExpiresAt;
+
+    @Getter
+    @Setter
     @Schema(description = "Checks if account is verified")
     private boolean isAccountVerified;
 
     @DBRef
     private List<Expense> expenses = new ArrayList<>();
-    @Schema(description = "This is the user role.", example = "USER")
+
     @NotNull
+    @Schema(description = "This is the user role.", example = "USER")
     private Role role;
 
     public User(String username, String password, String firstName, String lastName, String email) {

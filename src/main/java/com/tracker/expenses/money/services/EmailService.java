@@ -12,4 +12,7 @@ public interface EmailService {
     void sendPasswordResetEmail(String to, String verificationCode);
 
     void sendWelcomeEmail(String to);
+
+    void sendVerificationSuccessEmail(String to);
+    void sendResetSuccessEmail(String to);
 }
