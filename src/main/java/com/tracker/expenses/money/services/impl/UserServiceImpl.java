@@ -42,6 +42,12 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private AuthenticationManager authenticationManager;
 
+    /**
+     * Validates the provided user's username and email for correctness and uniqueness.
+     *
+     * @param user the user to validate
+     * @throws UserAlreadyExistsException if the username already exists in the repository
+     */
     private void isUserValid(User user){
         String username = user.getUsername().toLowerCase();
         Validation.isUsernameValid(username);
@@ -51,16 +57,36 @@ public class UserServiceImpl implements UserService {
         Validation.isEmailValid(user.getEmail());
     }
 
+    /****
+     * Retrieves a user by their username, performing a case-insensitive lookup.
+     *
+     * @param username the username to search for
+     * @return the User entity matching the given username, or null if not found
+     */
     public User findByUsername(String username) {
         username = username.toLowerCase();
         return  userRepository.findByUsername(username);
     }
 
+    /****
+     * Retrieves a user by their email address.
+     *
+     * @param email the email address to search for
+     * @return the User associated with the given email, or null if not found
+     */
     public User findByEmail(String email) {
         email = email.toLowerCase();
         return userRepository.findByEmail(email);
     }
 
+    /**
+     * Registers a new user, initializes account verification, and sends welcome and verification emails.
+     *
+     * Validates the provided user data, encodes the password, assigns default role and timestamps, generates a verification code with expiration, and saves the user to the repository. Sends a welcome email and a verification email to the user's email address, retrying the verification email if sending fails.
+     *
+     * @param userDTO the data transfer object containing user registration details
+     * @return a response containing the created user and a response header with HTTP status and message
+     */
     @Transactional
     public Response<ResponseHeader, User> addUser(UserDTO userDTO){
         User user = new User(
@@ -90,11 +116,27 @@ public class UserServiceImpl implements UserService {
         return new Response<>(new ResponseHeader(HttpStatus.CREATED, "User created successfully"), res);
     }
 
+    /****
+     * Retrieves all users from the repository.
+     *
+     * @return a list of all users
+     */
     public List<User> findAll(){
         return userRepository.findAll();
     }
 
-    //TODO: add email based verification
+    /**
+     * Verifies a user's account using a verification code.
+     *
+     * Validates the provided username and verification code, checks for code expiration, and ensures the user is not already verified. On successful verification, marks the account as verified, clears verification data, updates the user record, and sends a verification success email.
+     *
+     * @param verifyUserDTO contains the username and verification code for account verification
+     * @return a response indicating the result of the verification process
+     * @throws UsernameNotFoundException if the username is missing or the user does not exist
+     * @throws UserAlreadyVerifiedException if the user is already verified
+     * @throws VerificationCodeExpiredException if the verification code has expired
+     * @throws VerificationCodeIncorrect if the verification code does not match
+     */
     @Transactional
     public Response<ResponseHeader, Void> verifyUser(VerifyUserDTO verifyUserDTO){
         if (verifyUserDTO.getUsername() == null || verifyUserDTO.getUsername().isEmpty()) {
@@ -126,6 +168,14 @@ public class UserServiceImpl implements UserService {
 
     }
 
+    /**
+     * Updates the password for a user identified by the provided password reset data.
+     *
+     * Retrieves the user by username, encodes the new password, updates the user record, and returns a response indicating the outcome.
+     *
+     * @param passwordResetDTO contains the username and new password for the reset operation
+     * @return a response containing the updated user and status information
+     */
     public Response<ResponseHeader, User> updatePassword(PasswordResetDTO passwordResetDTO){
         User userdata = null;
         try{
@@ -144,6 +194,15 @@ public class UserServiceImpl implements UserService {
         }
     }
 
+    /**
+     * Updates the email and/or password of an existing user.
+     *
+     * If the provided email is present, it is validated before updating. If the password is present, it is encoded before updating.
+     * Returns a response indicating the outcome, including appropriate HTTP status codes for user not found, invalid email, or other errors.
+     *
+     * @param user the user object containing updated email and/or password fields
+     * @return a response with the updated user and status information
+     */
     public Response<ResponseHeader, User> updateUser(User user){
         try{
             User userdata = findByUsername(user.getUsername());
@@ -168,6 +227,14 @@ public class UserServiceImpl implements UserService {
         }
     }
 
+    /**
+     * Resends a verification code to the user's email address if the account is not yet verified.
+     *
+     * If the existing verification code has expired, a new code is generated. The verification code expiration is extended by 15 minutes. Throws exceptions if the username is missing, the user does not exist, or the account is already verified.
+     *
+     * @param username the username of the user to resend the verification code to
+     * @return a response indicating the verification code was resent successfully
+     */
     public Response<ResponseHeader, Void> resendVerificationCode(String username){
         if (username == null || username.isEmpty()) {
             throw new UsernameNotFoundException("Username is empty");
@@ -196,6 +263,16 @@ public class UserServiceImpl implements UserService {
     }
 
 
+    /**
+     * Authenticates a user with the provided login credentials.
+     *
+     * @param loginDTO the login credentials containing username and password
+     * @return a UserDTO containing user details upon successful authentication
+     * @throws UsernameNotFoundException if the user does not exist
+     * @throws UserNotVerifiedException if the user's account is not verified
+     * @throws BadCredentialsException if the credentials are invalid
+     * @throws AuthenticationException for other authentication failures
+     */
     public UserDTO authenticateUser(LoginDTO loginDTO) {
         try{
             User user = findByUsername(loginDTO.getUsername());
@@ -234,6 +311,13 @@ public class UserServiceImpl implements UserService {
         }
     }
 
+    /****
+     * Initiates the password reset process by generating and emailing a verification code to the user.
+     *
+     * @param username the username of the user requesting a password reset
+     * @return a response indicating that the password reset code was sent successfully
+     * @throws UsernameNotFoundException if the user does not exist
+     */
     public Response<ResponseHeader, Void> forgetUserPassword(String username){
             User user = findByUsername(username);
             if (user == null){
@@ -252,6 +336,17 @@ public class UserServiceImpl implements UserService {
         return new Response<>(new ResponseHeader(HttpStatus.OK, "Password reset code sent successfully"));
     }
 
+    /**
+     * Resets a user's password using a verification code.
+     *
+     * Validates the provided verification code and its expiration for the specified user. If valid, updates the user's password, clears the verification code and its expiration, updates the timestamp, and sends a password reset success email.
+     *
+     * @param passwordResetDTO contains the username, new password, and verification code
+     * @return a response indicating successful password reset
+     * @throws UsernameNotFoundException if the user does not exist
+     * @throws VerificationCodeIncorrect if the verification code is incorrect
+     * @throws VerificationCodeExpiredException if the verification code has expired
+     */
     public Response<ResponseHeader, Void> resetForgetPassword(PasswordResetDTO passwordResetDTO){
         User user = findByUsername(passwordResetDTO.getUsername());
         if (user == null){

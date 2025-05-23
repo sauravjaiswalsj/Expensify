@@ -15,10 +15,20 @@ public enum Currency {
     
     private final String description;
 
+    /**
+     * Constructs a Currency enum constant with the specified currency description.
+     *
+     * @param description the full name of the currency
+     */
     Currency(String description) {
         this.description = description;
     }
 
+    /**
+     * Returns the full name of the currency represented by this enum constant.
+     *
+     * @return the currency's description
+     */
     public String getDescription() {
         return description;
     }

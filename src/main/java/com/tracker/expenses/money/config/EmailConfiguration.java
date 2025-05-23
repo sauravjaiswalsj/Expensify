@@ -16,6 +16,11 @@ public class EmailConfiguration {
     @Value("${spring.mail.password}")
     private String emailPassword;
 
+    /**
+     * Configures and provides a JavaMailSender bean for sending emails via Gmail SMTP.
+     *
+     * @return a configured JavaMailSender instance with SMTP authentication and TLS enabled
+     */
     @Bean
     public JavaMailSender javaMailSender() {
         JavaMailSenderImpl mailSender = new JavaMailSenderImpl();

@@ -20,11 +20,29 @@ public class Register {
     @Autowired
     private UserService userService;
 
+    /**
+     * Retrieves a list of all registered users.
+     *
+     * @return a list containing all users in the system
+     */
     @GetMapping("/users")
     public List<User> getUser() {
         return userService.findAll();
     }
 
+    /**
+     * Handles user registration requests by validating input and creating a new user account.
+     *
+     * Accepts a {@link UserDTO} object in the request body, performs validation on username, email, and password fields,
+     * and attempts to register the user. Returns appropriate HTTP responses based on the outcome:
+     * - 201 Created (or service-defined status) if registration is successful.
+     * - 409 Conflict if the user already exists.
+     * - 400 Bad Request if input validation fails.
+     * - 500 Internal Server Error for unexpected errors.
+     *
+     * @param user the user data to register
+     * @return a {@link ResponseEntity} containing the registration result and HTTP status
+     */
     @PostMapping("/signup")
     public ResponseEntity<Response> register(@RequestBody UserDTO user) {
         try{

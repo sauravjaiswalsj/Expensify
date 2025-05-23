@@ -26,6 +26,15 @@ public class Login {
     @Autowired
     private JwtService jwtService;
 
+    /**
+     * Authenticates a user with provided login credentials and returns a JWT token upon successful authentication.
+     *
+     * Handles user login requests by validating credentials, generating a JWT token, and returning token details.
+     * Responds with appropriate HTTP status codes and messages for authentication failures or errors.
+     *
+     * @param loginDTO the login credentials submitted by the user
+     * @return a response entity containing a JWT token and its expiration time on success, or an error message with the corresponding HTTP status code on failure
+     */
     @PostMapping("/login")
     public ResponseEntity<?> loginUser(@RequestBody LoginDTO loginDTO) {
         try {
