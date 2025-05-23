@@ -1,17 +1,22 @@
 package com.tracker.expenses.money.dto;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
 public class Response<T,V> implements Serializable {
 
-    private T header;
+    private transient T header;
 
-    private V methodBody;
+    private transient V methodBody;
+
+    public Response(T header) {
+        this.header = header;
+    }
+
+    public Response(T header, V methodBody) {
+        this.header = header;
+        this.methodBody = methodBody;
+    }
 }

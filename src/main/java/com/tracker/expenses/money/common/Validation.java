@@ -1,5 +1,7 @@
 package com.tracker.expenses.money.common;
 
+import com.tracker.expenses.money.exception.InvalidEmailException;
+import com.tracker.expenses.money.exception.InvalidUserLength;
 import org.springframework.stereotype.Component;
 
 
@@ -15,5 +17,18 @@ public class Validation {
     public static boolean passwordValid(String password) {
 
         return password.length() >= 4 && password.length() <= 20;
+    }
+    public static void isEmailValid(String email){
+        if (!Validation.emailValid(email)){
+            throw new InvalidEmailException("Invalid email"+email);
+        }
+    }
+
+    public static void isUsernameValid(String username){
+        int length = username.length();
+
+        if (length < 4 || length > 20){
+            throw new InvalidUserLength("Username must be between 4 and 20 characters");
+        }
     }
 }

@@ -1,5 +1,6 @@
 package com.tracker.expenses.money.services.impl;
 
+import com.tracker.expenses.money.common.GetCurrentTime;
 import com.tracker.expenses.money.dto.Response;
 import com.tracker.expenses.money.dto.ResponseHeader;
 import com.tracker.expenses.money.exception.InvalidExpense;
@@ -12,9 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.Date;
+import static com.tracker.expenses.money.common.GetCurrentTime.convertLocalDateTimeToDate;
 
 @Service
 public class ExpenseServiceImpl implements ExpenseService {
@@ -46,7 +45,5 @@ public class ExpenseServiceImpl implements ExpenseService {
             return new Response<>(new ResponseHeader(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage()), expense);
         }
     }
-    private Date convertLocalDateTimeToDate() {
-        return Date.from(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant());
-    }
+
 }

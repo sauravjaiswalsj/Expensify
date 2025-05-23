@@ -1,29 +1,25 @@
 package com.tracker.expenses.money.controller.auth;
 
-import com.tracker.expenses.money.common.Validation;
-import com.tracker.expenses.money.controller.Authentication;
-import com.tracker.expenses.money.dto.userdto.PasswordResetDTO;
+import com.tracker.expenses.money.dto.userdto.VerifyUserDTO;
 import com.tracker.expenses.money.exception.UserAlreadyVerifiedException;
 import com.tracker.expenses.money.exception.VerificationCodeExpiredException;
 import com.tracker.expenses.money.exception.VerificationCodeIncorrect;
 import com.tracker.expenses.money.services.UserService;
-import com.tracker.expenses.money.dto.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
-@RequestMapping("/auth")
 @RestController
-public class ForgetPassword {
+@RequestMapping("/auth")
+public class VeriryOrResendCode {
     @Autowired
     private UserService userService;
-
-    @PostMapping("/forget")
-    public ResponseEntity<?> forgetPassword(@RequestBody String username) {
+    @PostMapping("/verify")
+    public ResponseEntity<String> verifyUser(@RequestBody VerifyUserDTO verifyUserDTO){
         try{
-            var res = userService.forgetUserPassword(username);
+            var res = userService.verifyUser(verifyUserDTO);
             return ResponseEntity.status(res.getHeader().getHttpResponseStatus()).body(res.getHeader().getResponseMessage());
         }catch (UsernameNotFoundException e){
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
@@ -37,19 +33,18 @@ public class ForgetPassword {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Internal server error");
         }
     }
-    @PostMapping("/forget/newPassword")
-    public ResponseEntity<?> verifyForgetPassword(@RequestBody PasswordResetDTO passwordResetDTO) {
+
+    @PostMapping("/resend")
+    public ResponseEntity<String> resendCode(@RequestParam String username){
         try{
-            var res = userService.resetForgetPassword(passwordResetDTO);
+            var res = userService.resendVerificationCode(username);
             return ResponseEntity.status(res.getHeader().getHttpResponseStatus()).body(res.getHeader().getResponseMessage());
         }catch (UsernameNotFoundException e){
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
-        }catch (VerificationCodeExpiredException e){
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Verification code expired");
-        }catch (VerificationCodeIncorrect e){
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Verification code incorrect");
         }catch (UserAlreadyVerifiedException e){
             return ResponseEntity.status(HttpStatus.CONFLICT).body("User already verified");
+        }catch (VerificationCodeIncorrect e){
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Verification code incorrect");
         } catch (Exception e){
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Internal server error");
         }

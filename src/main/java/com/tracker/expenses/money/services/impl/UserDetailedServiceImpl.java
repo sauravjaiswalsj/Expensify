@@ -26,7 +26,11 @@ public class UserDetailedServiceImpl implements UserDetailsService {
         if (user == null) {
             throw new UsernameNotFoundException(username);
         }
-        SimpleGrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + user.getRole().name());
+        SimpleGrantedAuthority authority;
+        if (user.getRole() == null)
+                authority = new SimpleGrantedAuthority("ROLE_USER");
+        else
+            authority = new SimpleGrantedAuthority("ROLE_" + user.getRole().name());
 
         return org.springframework.security.core.userdetails.User.builder()
                 .username(user.getUsername())
