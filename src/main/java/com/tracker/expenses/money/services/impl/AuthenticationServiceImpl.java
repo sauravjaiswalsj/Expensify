@@ -1,8 +1,9 @@
 package com.tracker.expenses.money.services.impl;
 
 import com.tracker.expenses.money.dto.userDTO.LoginDTO;
+import com.tracker.expenses.money.model.User;
 import com.tracker.expenses.money.services.AuthenticationService;
-import com.tracker.expenses.money.services.UserService;
+import com.tracker.expenses.money.services.EmailService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -17,11 +18,11 @@ import org.springframework.stereotype.Service;
 @Service
 public class AuthenticationServiceImpl implements AuthenticationService {
     @Autowired
-    private UserService userService;
-    @Autowired
     private AuthenticationManager authenticationManager;
     @Autowired
     private UserDetailedServiceImpl userDetailedServiceImpl;
+    @Autowired
+    private EmailService emailService;
 
     @Override
     public UserDetails authenticateUser(LoginDTO loginDTO) {

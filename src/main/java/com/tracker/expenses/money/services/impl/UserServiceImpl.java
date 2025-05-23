@@ -1,18 +1,21 @@
 package com.tracker.expenses.money.services.impl;
 
+import com.tracker.expenses.money.common.GenerateCodes;
+import com.tracker.expenses.money.common.Validation;
 import com.tracker.expenses.money.dto.userDTO.PasswordResetDTO;
 import com.tracker.expenses.money.dto.userDTO.RegisterDTO;
 import com.tracker.expenses.money.enums.Role;
+import com.tracker.expenses.money.services.AuthenticationService;
+import com.tracker.expenses.money.services.EmailService;
 import com.tracker.expenses.money.services.UserService;
-import com.tracker.expenses.money.services.business.UserServiceBusiness;
 import com.tracker.expenses.money.dto.Response;
 import com.tracker.expenses.money.dto.ResponseHeader;
 import com.tracker.expenses.money.exception.IncorrectPasswordException;
 import com.tracker.expenses.money.exception.InvalidEmailException;
-import com.tracker.expenses.money.exception.InvalidUserLength;
 import com.tracker.expenses.money.exception.UserAlreadyExistsException;
 import com.tracker.expenses.money.model.User;
 import com.tracker.expenses.money.repository.UserRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -20,24 +23,27 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import static com.tracker.expenses.money.common.GetCurrentTime.convertLocalDateTimeToDate;
+
+import java.time.LocalDateTime;
 import java.util.List;
 
+@Slf4j
 @Service
 public class UserServiceImpl implements UserService {
     @Autowired
     private UserRepository userRepository;
     @Autowired
-    private UserServiceBusiness userServiceBusiness;
+    private EmailService emailService;
     @Autowired
     private PasswordEncoder passwordEncoder;
 
     private void isUserValid(User user){
         String username = user.getUsername().toLowerCase();
-        userServiceBusiness.isUsernameValid(username);
+        Validation.isUsernameValid(username);
         if(userRepository.findByUsername(username)!=null){
             throw new UserAlreadyExistsException("User already exists "+username);
         }
-        userServiceBusiness.isEmailValid(user.getEmail());
+        Validation.isEmailValid(user.getEmail());
     }
 
     public User findByUsername(String username) {
@@ -65,8 +71,17 @@ public class UserServiceImpl implements UserService {
         user.setRole(Role.USER);
         user.setCreatedAt(convertLocalDateTimeToDate());
         user.setUpdatedAt(convertLocalDateTimeToDate());
-        User res =  userRepository.save(user);
-
+        user.setAccountVerified(false);
+        user.setVerificationCode(GenerateCodes.generateVerificationCode());
+        user.setVerificationCodeExpiresAt(LocalDateTime.now().plusMinutes(15));
+        var res = userRepository.save(user);
+        try {
+            emailService.sendWelcomeEmail(user.getEmail());
+            emailService.sendVerificationEmail(user.getEmail(), user.getVerificationCode());
+        }catch (Exception ex){
+            log.error("Error sending verification email to user {}", user.getUsername());
+            emailService.sendVerificationEmail(user.getEmail(), user.getVerificationCode());
+        }
         return new Response<>(new ResponseHeader(HttpStatus.CREATED, "User created successfully"), res);
     }
 
@@ -119,7 +134,7 @@ public class UserServiceImpl implements UserService {
                 throw new UsernameNotFoundException("User does not exist");
             }
             if (user.getEmail() != null){
-                userServiceBusiness.isEmailValid(user.getEmail());
+                Validation.isEmailValid(user.getEmail());
                 userdata.setEmail(user.getEmail());
             }
             if (user.getPassword() != null){

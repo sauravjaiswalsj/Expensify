@@ -11,6 +11,7 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -50,6 +51,13 @@ public class User {
     private Date createdAt;
     @Schema(description = "This is the updated time of the person")
     private Date updatedAt;
+
+    @Schema(description = "verification_code")
+    private String verificationCode;
+    @Schema(description = "verification_expiration")
+    private LocalDateTime verificationCodeExpiresAt;
+    @Schema(description = "Checks if account is verified")
+    private boolean isAccountVerified;
 
     @DBRef
     private List<Expense> expenses = new ArrayList<>();
