@@ -20,6 +20,14 @@ public class ForgetPassword {
     @Autowired
     private UserService userService;
 
+    /**
+     * Initiates the password reset process for a user by username.
+     *
+     * Accepts a username in the request body and triggers the password reset workflow. Returns an HTTP response with a status and message based on the outcome, including specific error responses for user not found, expired or incorrect verification codes, and already verified users.
+     *
+     * @param username the username of the account to reset the password for
+     * @return a ResponseEntity containing the status and message of the password reset initiation
+     */
     @PostMapping("/forget")
     public ResponseEntity<?> forgetPassword(@RequestBody String username) {
         try{
@@ -37,6 +45,14 @@ public class ForgetPassword {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Internal server error");
         }
     }
+    /**
+     * Handles password reset verification and updates the user's password.
+     *
+     * Accepts a password reset request containing verification and new password details, delegates the reset process to the user service, and returns an HTTP response based on the outcome. Responds with specific HTTP statuses and messages for known error conditions such as user not found, expired or incorrect verification code, or user already verified.
+     *
+     * @param passwordResetDTO the password reset request containing verification and new password information
+     * @return HTTP response indicating the result of the password reset verification
+     */
     @PostMapping("/forget/newPassword")
     public ResponseEntity<?> verifyForgetPassword(@RequestBody PasswordResetDTO passwordResetDTO) {
         try{

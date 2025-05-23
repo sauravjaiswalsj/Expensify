@@ -16,6 +16,15 @@ import org.springframework.web.bind.annotation.*;
 public class VeriryOrResendCode {
     @Autowired
     private UserService userService;
+    /**
+     * Handles user verification requests by validating the provided verification code.
+     *
+     * Accepts a verification request payload and returns an HTTP response indicating the result of the verification process.
+     * Responds with appropriate status codes and messages for cases such as user not found, expired or incorrect code, user already verified, or internal errors.
+     *
+     * @param verifyUserDTO the verification data submitted by the user
+     * @return HTTP response with status and message reflecting the verification outcome
+     */
     @PostMapping("/verify")
     public ResponseEntity<String> verifyUser(@RequestBody VerifyUserDTO verifyUserDTO){
         try{
@@ -34,6 +43,12 @@ public class VeriryOrResendCode {
         }
     }
 
+    /**
+     * Handles requests to resend a verification code to a user.
+     *
+     * @param username the username for which to resend the verification code
+     * @return an HTTP response with a status and message indicating the result of the resend operation
+     */
     @PostMapping("/resend")
     public ResponseEntity<String> resendCode(@RequestParam String username){
         try{

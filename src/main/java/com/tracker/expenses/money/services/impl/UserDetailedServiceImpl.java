@@ -14,10 +14,14 @@ public class UserDetailedServiceImpl implements UserDetailsService {
     @Autowired
     private UserRepository userRepository;
 
-    /**
-     * @param username
-     * @return
-     * @throws UsernameNotFoundException
+    /****
+     * Loads user-specific data for authentication based on the provided username.
+     *
+     * Retrieves a user entity by username, assigns an appropriate authority based on the user's role (defaulting to "ROLE_USER" if no role is set), and constructs a Spring Security UserDetails object for authentication.
+     *
+     * @param username the username identifying the user whose data is to be loaded
+     * @return a UserDetails object containing the user's credentials and authorities
+     * @throws UsernameNotFoundException if no user with the given username is found
      */
 
     @Override

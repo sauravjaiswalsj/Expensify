@@ -24,6 +24,14 @@ public class ExpenseServiceImpl implements ExpenseService {
     @Autowired
     private UserServiceImpl userService;
 
+    /**
+     * Adds a new expense for a user and returns a response indicating the result.
+     *
+     * If the expense date is not provided, it is set to the current date and time. The method also sets creation and update timestamps, saves the expense, associates it with the user, and updates the user record. Returns a response with appropriate HTTP status and message based on the outcome.
+     *
+     * @param expense the expense to be added
+     * @return a response containing the status, message, and the expense object
+     */
     @Override
     @Transactional
     public Response<ResponseHeader, Expense> addExpense(Expense expense){
