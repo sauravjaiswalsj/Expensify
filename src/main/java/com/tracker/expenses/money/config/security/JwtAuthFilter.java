@@ -25,12 +25,16 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     @Autowired
     private UserDetailedServiceImpl userDetailedService;
 
-    /**
-     * @param request
-     * @param response
-     * @param filterChain
-     * @throws ServletException
-     * @throws IOException
+    /****
+     * Processes incoming HTTP requests to perform JWT-based authentication.
+     *
+     * Extracts the JWT token from the Authorization header, validates it, and sets the authentication in the security context if valid. If authentication fails, responds with HTTP 401 Unauthorized.
+     *
+     * @param request the incoming HTTP request
+     * @param response the HTTP response
+     * @param filterChain the filter chain to continue processing
+     * @throws ServletException if a servlet-specific error occurs
+     * @throws IOException if an I/O error occurs during filtering
      */
     @Override
     protected void doFilterInternal(

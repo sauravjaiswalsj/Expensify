@@ -20,11 +20,25 @@ public class Register {
     @Autowired
     private UserService userService;
 
+    /**
+     * Retrieves a list of all registered users.
+     *
+     * @return a list containing all users in the system
+     */
     @GetMapping("/users")
     public List<User> getUser() {
         return userService.findAll();
     }
 
+    /**
+     * Handles user registration requests.
+     *
+     * Accepts a user registration payload, validates required fields, and attempts to create a new user account.
+     * Returns appropriate HTTP status codes and messages for validation errors, duplicate users, or unexpected failures.
+     *
+     * @param user the user registration data
+     * @return a response entity containing the registration result and HTTP status
+     */
     @PostMapping("/signup")
     public ResponseEntity<Response> register(@RequestBody UserDTO user) {
         try{

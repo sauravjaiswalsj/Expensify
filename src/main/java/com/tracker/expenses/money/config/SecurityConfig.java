@@ -37,6 +37,16 @@ public class SecurityConfig {
         return config.getAuthenticationManager();
     }
 
+    /**
+     * Configures the security filter chain for HTTP requests.
+     *
+     * Sets up stateless session management, disables CSRF protection, and defines authorization rules:
+     * permits all requests to authentication endpoints (`/auth`, `/auth/**`), H2 console, and Swagger UI/documentation paths; all other requests require authentication.
+     * Integrates a custom JWT authentication filter and authentication provider.
+     *
+     * @return the configured security filter chain
+     * @throws Exception if an error occurs during configuration
+     */
     @Bean
     public DefaultSecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception
     {

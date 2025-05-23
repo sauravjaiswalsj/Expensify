@@ -37,6 +37,15 @@ public class UserDTO {
     @Schema(description = "User's last name", example = "Doe")
     private String lastName;
 
+    /**
+     * Constructs a new UserDTO with the specified username, password, first name, last name, and email.
+     *
+     * @param username the user's unique username
+     * @param password the user's password
+     * @param firstName the user's first name
+     * @param lastName the user's last name
+     * @param email the user's email address
+     */
     public UserDTO(String username, String password, String firstName, String lastName, String email) {
         this.username = username;
         this.password = password;

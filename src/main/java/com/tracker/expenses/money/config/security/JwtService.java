@@ -42,6 +42,13 @@ public class JwtService {
                 .getBody();
     }
 
+    /**
+     * Returns the signing key used for JWT operations, derived from the configured secret key.
+     *
+     * If the secret key is not set or is empty, an informational log message is generated.
+     *
+     * @return the HMAC SHA key for signing and verifying JWTs
+     */
     protected Key getSignInKey() {
         if (secretKey == null || secretKey.trim().isEmpty()) {
             log.info("JWT Secret Key is not set");
@@ -51,12 +58,26 @@ public class JwtService {
         return Keys.hmacShaKeyFor(secretKey.getBytes());
     }
 
-    // generate token
+    /**
+     * Generates a JWT token for the specified username with the default expiration time and no additional claims.
+     *
+     * @param username the username to set as the subject of the token
+     * @return a signed JWT token string
+     */
     public String generateToken(String username){
         Map<String, Object> claims = new HashMap<>();
         return createToken(claims, username, expiration);
     }
 
+    /****
+     * Builds and signs a JWT token with the specified claims, subject, and expiration.
+     *
+     * @param claims additional claims to include in the token
+     * @param username the subject for whom the token is issued
+     * @param expiration the token's validity duration in milliseconds
+     * @return the generated JWT token as a string
+     * @throws JwtException if token creation fails
+     */
     private String createToken(Map<String, Object> claims, String username, long expiration){
         try {
             return Jwts.builder()
@@ -71,6 +92,12 @@ public class JwtService {
         }
     }
 
+    /**
+     * Determines whether the provided JWT token has expired.
+     *
+     * @param token the JWT token to check
+     * @return true if the token's expiration date is before the current date; false otherwise
+     */
     private boolean isTokenExpired(String token){
         return extractExpiration(token).before(new Date());
     }
@@ -79,11 +106,23 @@ public class JwtService {
         return extractClaim(token, Claims::getExpiration);
     }
 
+    /**
+     * Validates a JWT token by ensuring the username in the token matches the provided user details and the token is not expired.
+     *
+     * @param token the JWT token to validate
+     * @param userDetails the user details to compare against the token's subject
+     * @return true if the token is valid and not expired; false otherwise
+     */
     public boolean validateToken(String token, UserDetails userDetails){
         final String username = extractUsername(token);
         return (username != null && username.equals(userDetails.getUsername()) && !isTokenExpired(token));
     }
 
+    /**
+     * Returns the configured expiration duration for JWT tokens in milliseconds.
+     *
+     * @return the token expiration time in milliseconds
+     */
     public long getExpirationTime() {
         return expiration;
     }

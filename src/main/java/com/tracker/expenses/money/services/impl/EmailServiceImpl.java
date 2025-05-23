@@ -14,6 +14,15 @@ public class EmailServiceImpl implements EmailService {
     @Autowired
     private JavaMailSender emailSender;
 
+    /**
+     * Sends an HTML email to the specified recipient with the given subject and body.
+     *
+     * @param to      the recipient's email address
+     * @param subject the subject line of the email
+     * @param body    the HTML content of the email
+     *
+     * @throws RuntimeException if the email fails to send due to a messaging error
+     */
     private void emailSender(String to, String subject, String body){
         MimeMessage message = emailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message);
@@ -29,19 +38,25 @@ public class EmailServiceImpl implements EmailService {
         }
     }
 
-    /**
-     * @param to
-     * @param subject
-     * @param body
+    /****
+     * Sends an email with the specified recipient, subject, and HTML body content.
+     *
+     * @param to the recipient's email address
+     * @param subject the subject line of the email
+     * @param body the HTML content of the email body
      */
     @Override
     public void sendEmail(String to, String subject, String body) {
         emailSender(to, subject, body);
     }
 
-    /**
-     * @param to
-     * @param verificationCode
+    /****
+     * Sends a verification email containing a 6-digit code to the specified recipient.
+     *
+     * The email includes the provided verification code and informs the recipient that the code will expire in 15 minutes.
+     *
+     * @param to the recipient's email address
+     * @param verificationCode the 6-digit verification code to include in the email
      */
     @Override
     public void sendVerificationEmail(String to, String verificationCode) {
@@ -52,8 +67,12 @@ public class EmailServiceImpl implements EmailService {
     }
 
     /**
-     * @param to
-     * @param verificationCode
+     * Sends a password reset email with a verification code to the specified recipient.
+     *
+     * The email includes a 6-digit verification code and informs the user that the code is valid for 1 hour.
+     *
+     * @param to the recipient's email address
+     * @param verificationCode the verification code to include in the email
      */
     @Override
     public void sendPasswordResetEmail(String to, String verificationCode) {
@@ -64,26 +83,47 @@ public class EmailServiceImpl implements EmailService {
         emailSender(to,subject, htmlBody);
     }
 
-    /**
-     * @param to
+    /****
+     * Sends a welcome email with a predefined subject and HTML content to the specified recipient.
+     *
+     * @param to the recipient's email address
      */
     @Override
     public void sendWelcomeEmail(String to) {
         emailSender(to, welcomeSubject, welcomeBody);
     }
     
+    /**
+     * Sends an account verification success email to the specified recipient.
+     *
+     * @param to the recipient's email address
+     */
     @Override
     public void sendVerificationSuccessEmail(String to){
         String subject = "Account Verification Successful \uD83C\uDF89";
         String content = "Your account address has been verified successfully.";
         successEmail(to, subject, content);
     }
+    /**
+     * Sends a password reset success email to the specified recipient.
+     *
+     * The email notifies the user that their account password has been successfully reset.
+     *
+     * @param to the recipient's email address
+     */
     @Override
     public void sendResetSuccessEmail(String to){
         String subject = "Password Successfully Reset. \uD83D\uDD13";
         String content = "Your account password has been successfully reset.";
         successEmail(to, subject, content);
     }
+    /**
+     * Sends a success notification email using a default HTML template with the specified subject and content.
+     *
+     * @param to recipient's email address
+     * @param subject subject line for the email and template placeholders
+     * @param content main message content to be inserted into the email body
+     */
     private void successEmail(String to, String subject, String content){
         String body = htmlDefaultBody
                 .replace("{{title}}", subject)

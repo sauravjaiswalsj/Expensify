@@ -80,6 +80,17 @@ public class User {
     @Schema(description = "This is the user role.", example = "USER")
     private Role role;
 
+    /**
+     * Constructs a User with the specified username, password, first name, last name, and email.
+     *
+     * Initializes the core identity and authentication fields for a new user instance.
+     *
+     * @param username the unique username for the user
+     * @param password the user's password
+     * @param firstName the user's first name
+     * @param lastName the user's last name
+     * @param email the user's email address
+     */
     public User(String username, String password, String firstName, String lastName, String email) {
         this.username = username;
         this.password = password;
