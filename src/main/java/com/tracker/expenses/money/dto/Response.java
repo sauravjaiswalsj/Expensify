@@ -7,9 +7,9 @@ import java.io.Serializable;
 @Data
 public class Response<T,V> implements Serializable {
 
-    private transient T header;
+    private T header;
 
-    private transient V methodBody;
+    private V methodBody;
 
     public Response(T header) {
         this.header = header;

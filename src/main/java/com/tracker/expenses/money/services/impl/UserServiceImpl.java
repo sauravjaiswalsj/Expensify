@@ -111,7 +111,7 @@ public class UserServiceImpl implements UserService {
             throw new VerificationCodeExpiredException("Verification code has expired");
         }
         if (!user.getVerificationCode().equals(verifyUserDTO.getVerificationCode())){
-            throw new VerificationCodeIncorrect("Verification code is incorrect");
+            throw new VerificationCodeIncorrectException("Verification code is incorrect");
         }
         else{
             user.setAccountVerified(true);
@@ -183,7 +183,7 @@ public class UserServiceImpl implements UserService {
             if (user.getVerificationCodeExpiresAt().isBefore(LocalDateTime.now())){
                 user.setVerificationCode(GenerateCodes.generateVerificationCode());
             }
-            String code = user.getVerificationCode().isEmpty() ? GenerateCodes.generateVerificationCode() : user.getVerificationCode();
+            String code = user.getVerificationCode() == null || user.getVerificationCode().isEmpty() ? GenerateCodes.generateVerificationCode() : user.getVerificationCode();
             emailService.sendVerificationEmail(user.getEmail(), code);
         }catch (Exception ex){
             log.error("Error sending verification email. Retrying...");
@@ -202,12 +202,13 @@ public class UserServiceImpl implements UserService {
             if (user == null) {
                 throw new UsernameNotFoundException("User not found");
             }
-            if (!user.isAccountVerified()) {
-                throw new UserNotVerifiedException("User not verified");
-            }
 
             authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
                     loginDTO.getUsername(), loginDTO.getPassword()));
+
+            if (!user.isAccountVerified()) {
+                throw new UserNotVerifiedException("User not verified");
+            }
 
             log.info("User {} authenticated successfully", loginDTO.getUsername());
 
@@ -247,7 +248,7 @@ public class UserServiceImpl implements UserService {
             emailService.sendPasswordResetEmail(user.getEmail(), code);
         }catch (RuntimeException ex){
             log.error("Email Retrying...");
-            emailService.sendPasswordResetEmail(username,  code);
+            emailService.sendPasswordResetEmail(user.getEmail(),  code);
         }
         return new Response<>(new ResponseHeader(HttpStatus.OK, "Password reset code sent successfully"));
     }
@@ -258,7 +259,7 @@ public class UserServiceImpl implements UserService {
             throw new UsernameNotFoundException("User does not exist");
         }
         if (!user.getVerificationCode().equals(passwordResetDTO.getVerificationCode())){
-            throw new VerificationCodeIncorrect("Verification code is incorrect");
+            throw new VerificationCodeIncorrectException("Verification code is incorrect");
         }
         if (user.getVerificationCodeExpiresAt().isBefore(LocalDateTime.now())){
             throw new VerificationCodeExpiredException("Verification code has expired");

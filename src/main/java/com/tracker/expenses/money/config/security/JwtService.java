@@ -44,7 +44,7 @@ public class JwtService {
 
     protected Key getSignInKey() {
         if (secretKey == null || secretKey.trim().isEmpty()) {
-            log.info("JWT Secret Key is not set");
+            log.debug("JWT Secret Key is not set");
         }
 //        byte[] keyBytes = Decoders.BASE64.decode(secretKey);
 //        return Keys.hmacShaKeyFor(keyBytes);

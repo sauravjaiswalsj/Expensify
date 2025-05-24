@@ -6,6 +6,7 @@ import com.tracker.expenses.money.dto.userdto.LoginDTO;
 import com.tracker.expenses.money.dto.userdto.UserDTO;
 import com.tracker.expenses.money.exception.UserNotVerifiedException;
 import com.tracker.expenses.money.services.UserService;
+import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -27,7 +28,7 @@ public class Login {
     private JwtService jwtService;
 
     @PostMapping("/login")
-    public ResponseEntity<?> loginUser(@RequestBody LoginDTO loginDTO) {
+    public ResponseEntity<Object> loginUser(@RequestBody @Valid LoginDTO loginDTO) {
         try {
             UserDTO userDetails = userService.authenticateUser(loginDTO);
             String jwtToken = jwtService.generateToken(userDetails.getUsername());

@@ -11,7 +11,7 @@ import jakarta.validation.constraints.Size;
 @Schema(description = "Data required for user registration")
 public class UserDTO {
     @NotBlank(message = "username is required")
-    @Size(min = 3, max = 50, message = "username must be between 3 and 20 characters long")
+    @Size(min = 4, max = 20, message = "username must be between 4 and 20 characters long")
     @Schema(description = "User's unique username", example = "john_doe")
     private String username;
 
@@ -21,10 +21,10 @@ public class UserDTO {
     private String email;
 
     @NotBlank(message = "Password is required")
-    @Size(min = 4, message = "Password must be at least 8 characters long")
+    @Size(min = 8, message = "Password must be at least 8 characters long")
     @Pattern(
-            regexp = "^(?=.*[0-9])(?=.*[a-zA-Z])(?=.*[@#$%^&+=!])(?=\\S+$).{4,}$",
-            message = "Password must contain at least one letter, one number, and one special character"
+            regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$",
+            message = "Password must contain at least one Capital letter, one number, and one special character"
     )
     @Schema(description = "User's password", example = "StrongP@ss123")
     private String password;

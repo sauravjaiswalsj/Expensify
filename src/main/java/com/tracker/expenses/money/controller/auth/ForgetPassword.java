@@ -1,13 +1,11 @@
 package com.tracker.expenses.money.controller.auth;
 
-import com.tracker.expenses.money.common.Validation;
-import com.tracker.expenses.money.controller.Authentication;
 import com.tracker.expenses.money.dto.userdto.PasswordResetDTO;
 import com.tracker.expenses.money.exception.UserAlreadyVerifiedException;
 import com.tracker.expenses.money.exception.VerificationCodeExpiredException;
-import com.tracker.expenses.money.exception.VerificationCodeIncorrect;
+import com.tracker.expenses.money.exception.VerificationCodeIncorrectException;
 import com.tracker.expenses.money.services.UserService;
-import com.tracker.expenses.money.dto.Response;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,7 +19,7 @@ public class ForgetPassword {
     private UserService userService;
 
     @PostMapping("/forget")
-    public ResponseEntity<?> forgetPassword(@RequestBody String username) {
+    public ResponseEntity<String> forgetPassword(@RequestParam String username) {
         try{
             var res = userService.forgetUserPassword(username);
             return ResponseEntity.status(res.getHeader().getHttpResponseStatus()).body(res.getHeader().getResponseMessage());
@@ -29,7 +27,7 @@ public class ForgetPassword {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
         }catch (VerificationCodeExpiredException e){
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Verification code expired");
-        }catch (VerificationCodeIncorrect e){
+        }catch (VerificationCodeIncorrectException e){
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Verification code incorrect");
         }catch (UserAlreadyVerifiedException e){
             return ResponseEntity.status(HttpStatus.CONFLICT).body("User already verified");
@@ -38,7 +36,7 @@ public class ForgetPassword {
         }
     }
     @PostMapping("/forget/newPassword")
-    public ResponseEntity<?> verifyForgetPassword(@RequestBody PasswordResetDTO passwordResetDTO) {
+    public ResponseEntity<String> verifyForgetPassword(@RequestBody @Valid PasswordResetDTO passwordResetDTO) {
         try{
             var res = userService.resetForgetPassword(passwordResetDTO);
             return ResponseEntity.status(res.getHeader().getHttpResponseStatus()).body(res.getHeader().getResponseMessage());
@@ -46,7 +44,7 @@ public class ForgetPassword {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
         }catch (VerificationCodeExpiredException e){
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Verification code expired");
-        }catch (VerificationCodeIncorrect e){
+        }catch (VerificationCodeIncorrectException e){
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Verification code incorrect");
         }catch (UserAlreadyVerifiedException e){
             return ResponseEntity.status(HttpStatus.CONFLICT).body("User already verified");

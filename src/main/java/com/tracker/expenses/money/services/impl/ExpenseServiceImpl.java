@@ -1,9 +1,8 @@
 package com.tracker.expenses.money.services.impl;
 
-import com.tracker.expenses.money.common.GetCurrentTime;
 import com.tracker.expenses.money.dto.Response;
 import com.tracker.expenses.money.dto.ResponseHeader;
-import com.tracker.expenses.money.exception.InvalidExpense;
+import com.tracker.expenses.money.exception.InvalidExpenseException;
 import com.tracker.expenses.money.model.Expense;
 import com.tracker.expenses.money.model.User;
 import com.tracker.expenses.money.repository.ExpenseRepository;
@@ -39,7 +38,7 @@ public class ExpenseServiceImpl implements ExpenseService {
             user.getExpenses().add(exp);
             userService.updateUser(user);
             return new Response<>(new ResponseHeader(HttpStatus.CREATED, "Expense added successfully"), exp);
-        }catch (InvalidExpense e){
+        }catch (InvalidExpenseException e){
             return new Response<>(new ResponseHeader(HttpStatus.CONFLICT, e.getMessage()), expense);
         } catch (Exception ex){
             return new Response<>(new ResponseHeader(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage()), expense);

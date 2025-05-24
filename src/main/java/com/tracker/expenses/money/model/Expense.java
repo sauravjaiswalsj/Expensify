@@ -43,6 +43,6 @@ public class Expense {
     @Schema(description = "This is the updated time of the expense")
     private Date updatedAt;
 
-    @Schema(description = "This is the currency.", example = "INR", _const = "INR")
+    @Schema(description = "This is the currency.", example = "INR")
     private Currency currency;
 }
