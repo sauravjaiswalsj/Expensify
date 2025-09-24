@@ -1,6 +1,6 @@
 package com.tracker.expenses.money.controller.auth;
 
-import com.tracker.expenses.money.dto.userdto.PasswordResetDTO;
+import com.tracker.expenses.money.dto.userdto.VerifyUserDTO;
 import com.tracker.expenses.money.exception.UserAlreadyVerifiedException;
 import com.tracker.expenses.money.exception.VerificationCodeExpiredException;
 import com.tracker.expenses.money.exception.VerificationCodeIncorrectException;
@@ -12,16 +12,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
-@RequestMapping("/auth")
 @RestController
-public class ForgetPassword {
+@RequestMapping("/auth")
+public class VerifyOrResendCode {
     @Autowired
     private UserService userService;
-
-    @PostMapping("/forget")
-    public ResponseEntity<String> forgetPassword(@RequestParam String username) {
+    @PostMapping("/verify")
+    public ResponseEntity<String> verifyUser(@RequestBody @Valid VerifyUserDTO verifyUserDTO){
         try{
-            var res = userService.forgetUserPassword(username);
+            var res = userService.verifyUser(verifyUserDTO);
             return ResponseEntity.status(res.getHeader().getHttpResponseStatus()).body(res.getHeader().getResponseMessage());
         }catch (UsernameNotFoundException e){
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
@@ -35,17 +34,14 @@ public class ForgetPassword {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Internal server error");
         }
     }
-    @PostMapping("/forget/newPassword")
-    public ResponseEntity<String> verifyForgetPassword(@RequestBody @Valid PasswordResetDTO passwordResetDTO) {
+
+    @PostMapping("/resend")
+    public ResponseEntity<String> resendCode(@RequestParam String username){
         try{
-            var res = userService.resetForgetPassword(passwordResetDTO);
+            var res = userService.resendVerificationCode(username);
             return ResponseEntity.status(res.getHeader().getHttpResponseStatus()).body(res.getHeader().getResponseMessage());
         }catch (UsernameNotFoundException e){
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
-        }catch (VerificationCodeExpiredException e){
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Verification code expired");
-        }catch (VerificationCodeIncorrectException e){
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Verification code incorrect");
         }catch (UserAlreadyVerifiedException e){
             return ResponseEntity.status(HttpStatus.CONFLICT).body("User already verified");
         } catch (Exception e){

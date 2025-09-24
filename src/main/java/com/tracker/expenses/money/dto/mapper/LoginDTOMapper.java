@@ -1,7 +1,7 @@
 package com.tracker.expenses.money.dto.mapper;
 
 import com.tracker.expenses.money.dto.SerializableDTO;
-import com.tracker.expenses.money.dto.userDTO.LoginDTO;
+import com.tracker.expenses.money.dto.userdto.LoginDTO;
 import com.tracker.expenses.money.model.User;
 import org.springframework.stereotype.Component;
 

@@ -2,7 +2,7 @@ package com.tracker.expenses.money.services.impl;
 
 import com.tracker.expenses.money.dto.Response;
 import com.tracker.expenses.money.dto.ResponseHeader;
-import com.tracker.expenses.money.exception.InvalidExpense;
+import com.tracker.expenses.money.exception.InvalidExpenseException;
 import com.tracker.expenses.money.model.Expense;
 import com.tracker.expenses.money.model.User;
 import com.tracker.expenses.money.repository.ExpenseRepository;
@@ -12,9 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.Date;
+import static com.tracker.expenses.money.common.GetCurrentTime.convertLocalDateTimeToDate;
 
 @Service
 public class ExpenseServiceImpl implements ExpenseService {
@@ -40,13 +38,11 @@ public class ExpenseServiceImpl implements ExpenseService {
             user.getExpenses().add(exp);
             userService.updateUser(user);
             return new Response<>(new ResponseHeader(HttpStatus.CREATED, "Expense added successfully"), exp);
-        }catch (InvalidExpense e){
+        }catch (InvalidExpenseException e){
             return new Response<>(new ResponseHeader(HttpStatus.CONFLICT, e.getMessage()), expense);
         } catch (Exception ex){
             return new Response<>(new ResponseHeader(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage()), expense);
         }
     }
-    private Date convertLocalDateTimeToDate() {
-        return Date.from(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant());
-    }
+
 }
