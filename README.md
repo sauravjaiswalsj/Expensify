@@ -1,5 +1,5 @@
 
-# Expensify.ai — Recruiter Overview & AI Highlights
+# Expensify.ai — Overview & Highlights
 
 Expensify.ai is a full-stack expense tracker built to showcase advanced backend engineering and practical AI integration. Designed for scalability, security, and real-world impact, this project demonstrates expertise in Spring Boot, MongoDB, and modern authentication, with a special focus on AI-powered features.
 
