@@ -1,4 +1,4 @@
-package com.tracker.expenses.money.services;
+package com.tracker.expenses.money.service;
 
 import com.tracker.expenses.money.dto.Response;
 import com.tracker.expenses.money.dto.ResponseHeader;

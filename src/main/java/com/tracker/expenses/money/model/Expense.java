@@ -7,6 +7,7 @@ import jakarta.persistence.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.Date;
@@ -45,4 +46,7 @@ public class Expense {
 
     @Schema(description = "This is the currency.", example = "INR")
     private Currency currency;
+
+    @DBRef(lazy = true)
+    private User user;
 }

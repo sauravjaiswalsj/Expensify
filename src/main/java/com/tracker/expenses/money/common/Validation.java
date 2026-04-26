@@ -1,6 +1,7 @@
 package com.tracker.expenses.money.common;
 
 import com.tracker.expenses.money.exception.InvalidEmailException;
+import com.tracker.expenses.money.exception.InvalidPasswordException;
 import com.tracker.expenses.money.exception.InvalidUserLengthException;
 
 
@@ -14,12 +15,12 @@ public class Validation {
         return username.matches(regex);
     }
     public static boolean isValidPassword(String password) {
-        String regex = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$";
+        String regex = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&#])[A-Za-z\\d@$!%*?&#]{8,}$";
         return password.matches(regex);
     }
     public static void isPasswordValid(String password) {
         if (!Validation.isValidPassword(password)) {
-            throw new InvalidUserLengthException("Password must be at least 8 characters long, contain at least one uppercase letter, one lowercase letter, one number, and one special character.");
+            throw new InvalidPasswordException("Password must be at least 8 characters long, contain at least one uppercase letter, one lowercase letter, one number, and one special character.");
         }
     }
 

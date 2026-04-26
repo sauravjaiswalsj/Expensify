@@ -3,7 +3,7 @@ package com.tracker.expenses.money.controller.expense;
 import com.tracker.expenses.money.controller.Authentication;
 import com.tracker.expenses.money.dto.Response;
 import com.tracker.expenses.money.model.Expense;
-import com.tracker.expenses.money.services.ExpenseService;
+import com.tracker.expenses.money.service.ExpenseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;

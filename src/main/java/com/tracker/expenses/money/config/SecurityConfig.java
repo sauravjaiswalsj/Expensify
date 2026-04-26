@@ -1,7 +1,7 @@
 package com.tracker.expenses.money.config;
 
 import com.tracker.expenses.money.config.security.JwtAuthFilter;
-import com.tracker.expenses.money.services.impl.UserDetailedServiceImpl;
+import com.tracker.expenses.money.service.impl.UserDetailedServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

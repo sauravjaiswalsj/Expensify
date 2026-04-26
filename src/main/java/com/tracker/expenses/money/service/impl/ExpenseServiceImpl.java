@@ -1,4 +1,4 @@
-package com.tracker.expenses.money.services.impl;
+package com.tracker.expenses.money.service.impl;
 
 import com.tracker.expenses.money.dto.Response;
 import com.tracker.expenses.money.dto.ResponseHeader;
@@ -6,7 +6,7 @@ import com.tracker.expenses.money.exception.InvalidExpenseException;
 import com.tracker.expenses.money.model.Expense;
 import com.tracker.expenses.money.model.User;
 import com.tracker.expenses.money.repository.ExpenseRepository;
-import com.tracker.expenses.money.services.ExpenseService;
+import com.tracker.expenses.money.service.ExpenseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;

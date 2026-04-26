@@ -1,6 +1,6 @@
 package com.tracker.expenses.money.config.security;
 
-import com.tracker.expenses.money.services.impl.UserDetailedServiceImpl;
+import com.tracker.expenses.money.service.impl.UserDetailedServiceImpl;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: <your-application-name>
+  data:
+    mongodb:
+      uri: <your-mongodb-uri>
+      database: <your-database-name>
+      auto-index-creation: true
+  main:
+    log-startup-info: false
+
+server:
+  port: 8080 #<your-port-number>
+
+logging:
+  level:
+    root: #<your-log-level>
+
+springdoc:
+  show-login-endpoint: true

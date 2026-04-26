@@ -4,7 +4,7 @@ import com.tracker.expenses.money.dto.userdto.VerifyUserDTO;
 import com.tracker.expenses.money.exception.UserAlreadyVerifiedException;
 import com.tracker.expenses.money.exception.VerificationCodeExpiredException;
 import com.tracker.expenses.money.exception.VerificationCodeIncorrectException;
-import com.tracker.expenses.money.services.UserService;
+import com.tracker.expenses.money.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
