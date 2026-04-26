@@ -59,6 +59,8 @@ docs/
 # Application-specific properties (create from -example templates)
 application-local.yml
 application-local.properties
+#application-dumps.properties
+application-dumps.yml
 
 # Secret env files - NEVER commit these
 .env
@@ -146,5 +148,3 @@ yarn-error.log*
 # ===============================
 # Backend-specific Next.js/Node references
 # ===============================
-backend.md
-Todo.md
