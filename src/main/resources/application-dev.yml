@@ -1,0 +1,53 @@
+spring:
+  config:
+    import: "optional:file:.env[.properties]"
+
+  application:
+    name: money
+  data:
+    mongodb:
+      uri: ${SPRING_DATA_MONGODB_URI}
+      database: ${SPRING_DATASOURCE_DATABASE}
+      auto-index-creation: true
+  main:
+    log-startup-info: true
+
+  mail:
+    username: ${SUPPORT_EMAIL}
+    password: ${APP_PASSWORD}
+    host: smtp.gmail.com
+    port: 587
+    protocol: smtp
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: true
+      mail.debug: false
+
+security:
+  jwt:
+    secret-key: ${JWT_SECRET_KEY}
+    expiration: 3600000
+
+server:
+  port: 8080
+
+logging:
+  level:
+    root: INFO
+    com.tracker.expenses.money: DEBUG
+    org.springframework.web: INFO
+    org.springframework.data.mongodb: DEBUG
+    com.mongodb: DEBUG
+
+#logging:
+#  level:
+#    root:
+#logging:
+#  level:
+#    org:
+#      springframework:
+#        mail=DEBUG:
+springdoc:
+  show-login-endpoint: true
+
+

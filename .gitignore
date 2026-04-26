@@ -1,3 +1,9 @@
+################################################################################
+# Expensify.ai - Full Stack Monorepo .gitignore
+# Backend: Spring Boot / Maven
+# Frontend: Next.js / TypeScript / React
+################################################################################
+
 HELP.md
 target/
 !.mvn/wrapper/maven-wrapper.jar
@@ -14,10 +20,13 @@ target/
 .sts4-cache
 resource/
 ### IntelliJ IDEA ###
-.idea
+.idea/
 *.iws
 *.iml
 *.ipr
+.idea_modules/
+workspace.xml
+projectCodeStyle.xml
 
 ### NetBeans ###
 /nbproject/private/
@@ -44,18 +53,22 @@ docs/
 *.jar
 *.war
 
-# Environment-specific properties
-application.yml
-application.properties
-application-*.yml
-application-*.properties
-application-dev.yml
-application-prod.yml
-application-dumps.yml
+# ===============================
+# Environment Configuration (DO NOT COMMIT SECRETS)
+# ===============================
+# Application-specific properties (create from -example templates)
+application-local.yml
+application-local.properties
 
-# Secret env files
+# Secret env files - NEVER commit these
 .env
-.env.*
+.env.local
+.env.*.local
+.env.production.local
+
+# Keep example files tracked for reference
+!application-example.yml
+!client/.env.example
 
 # IDE-specific files
 # IntelliJ
@@ -103,5 +116,35 @@ Dockerfile.*
 # GitHub-specific
 .github/
 
-# Node modules (in case of frontend in same project)
+# ===============================
+# Next.js / Node.js (Frontend/Client)
+# ===============================
 node_modules/
+client/node_modules/
+client/.next/
+client/out/
+client/.env.local
+client/.env.*.local
+client/npm-debug.log*
+client/yarn-debug.log*
+client/yarn-error.log*
+client/.eslintrc.json
+client/tsconfig.tsbuildinfo
+client/package-lock.json
+client/.pnpm-debug.log*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ===============================
+# MongoDB & Databases
+# ===============================
+*.db
+*.sqlite
+*.sqlite3
+
+# ===============================
+# Backend-specific Next.js/Node references
+# ===============================
+backend.md
+Todo.md

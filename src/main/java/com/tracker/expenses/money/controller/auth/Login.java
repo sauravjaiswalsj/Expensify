@@ -5,7 +5,7 @@ import com.tracker.expenses.money.dto.responsedto.LoginResponseDTO;
 import com.tracker.expenses.money.dto.userdto.LoginDTO;
 import com.tracker.expenses.money.dto.userdto.UserDTO;
 import com.tracker.expenses.money.exception.UserNotVerifiedException;
-import com.tracker.expenses.money.services.UserService;
+import com.tracker.expenses.money.service.UserService;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;

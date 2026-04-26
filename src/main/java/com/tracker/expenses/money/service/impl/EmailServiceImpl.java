@@ -1,6 +1,6 @@
-package com.tracker.expenses.money.services.impl;
+package com.tracker.expenses.money.service.impl;
 
-import com.tracker.expenses.money.services.EmailService;
+import com.tracker.expenses.money.service.EmailService;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Autowired;

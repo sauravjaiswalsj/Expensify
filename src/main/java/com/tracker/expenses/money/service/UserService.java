@@ -1,4 +1,4 @@
-package com.tracker.expenses.money.services;
+package com.tracker.expenses.money.service;
 
 import com.tracker.expenses.money.dto.Response;
 import com.tracker.expenses.money.dto.ResponseHeader;
@@ -22,6 +22,6 @@ public interface UserService {
     Response<ResponseHeader, User> updateUser(User user);
     Response<ResponseHeader, Void> resendVerificationCode(String username);
     UserDTO authenticateUser(LoginDTO loginDTO);
-    Response<ResponseHeader, Void> forgetUserPassword(String verificationCode);
+    Response<ResponseHeader, Void> forgetUserPassword(String username);
     Response<ResponseHeader, Void> resetForgetPassword(PasswordResetDTO passwordResetDTO);
 }

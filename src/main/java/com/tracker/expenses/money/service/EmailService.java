@@ -1,4 +1,4 @@
-package com.tracker.expenses.money.services;
+package com.tracker.expenses.money.service;
 
 
 public interface EmailService {

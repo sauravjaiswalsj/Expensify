@@ -1,4 +1,4 @@
-package com.tracker.expenses.money.services.impl;
+package com.tracker.expenses.money.service.impl;
 
 import com.tracker.expenses.money.common.GenerateCodes;
 import com.tracker.expenses.money.common.Validation;
@@ -8,8 +8,8 @@ import com.tracker.expenses.money.dto.userdto.UserDTO;
 import com.tracker.expenses.money.dto.userdto.VerifyUserDTO;
 import com.tracker.expenses.money.enums.Role;
 import com.tracker.expenses.money.exception.*;
-import com.tracker.expenses.money.services.EmailService;
-import com.tracker.expenses.money.services.UserService;
+import com.tracker.expenses.money.service.EmailService;
+import com.tracker.expenses.money.service.UserService;
 import com.tracker.expenses.money.dto.Response;
 import com.tracker.expenses.money.dto.ResponseHeader;
 import com.tracker.expenses.money.model.User;
@@ -25,6 +25,9 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronizationAdapter;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+
 import static com.tracker.expenses.money.common.GetCurrentTime.convertLocalDateTimeToDate;
 
 import java.time.LocalDateTime;
@@ -80,6 +83,13 @@ public class UserServiceImpl implements UserService {
         user.setVerificationCode(GenerateCodes.generateVerificationCode());
         user.setVerificationCodeExpiresAt(LocalDateTime.now().plusMinutes(15));
         var res = userRepository.save(user);
+        TransactionSynchronizationManager.registerSynchronization(
+            new TransactionSynchronizationAdapter() {
+                @Override public void afterCommit() {
+                    emailService.sendWelcomeEmail(user.getEmail());
+                    emailService.sendVerificationEmail(user.getEmail(), user.getVerificationCode());
+                }
+            });
         try {
             emailService.sendWelcomeEmail(user.getEmail());
             emailService.sendVerificationEmail(user.getEmail(), user.getVerificationCode());
@@ -257,6 +267,12 @@ public class UserServiceImpl implements UserService {
         User user = findByUsername(passwordResetDTO.getUsername());
         if (user == null){
             throw new UsernameNotFoundException("User does not exist");
+        }
+        if (passwordResetDTO.getVerificationCode() == null || passwordResetDTO.getVerificationCode().isEmpty()) {
+            throw new VerificationCodeIncorrectException("Verification code is empty");
+        }
+        if (user.getVerificationCodeExpiresAt() == null){
+            throw new VerificationCodeExpiredException("Verification code has expired. Please request a new one.");
         }
         if (!user.getVerificationCode().equals(passwordResetDTO.getVerificationCode())){
             throw new VerificationCodeIncorrectException("Verification code is incorrect");

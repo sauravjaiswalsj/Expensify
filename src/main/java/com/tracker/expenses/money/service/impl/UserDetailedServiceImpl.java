@@ -1,4 +1,4 @@
-package com.tracker.expenses.money.services.impl;
+package com.tracker.expenses.money.service.impl;
 
 import com.tracker.expenses.money.model.User;
 import com.tracker.expenses.money.repository.UserRepository;

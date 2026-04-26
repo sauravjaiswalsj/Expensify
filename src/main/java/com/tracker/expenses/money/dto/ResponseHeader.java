@@ -1,6 +1,5 @@
 package com.tracker.expenses.money.dto;
 
-import io.netty.handler.codec.http.HttpResponseStatus;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import org.springframework.http.HttpStatus;
