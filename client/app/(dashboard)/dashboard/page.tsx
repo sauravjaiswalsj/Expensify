@@ -181,7 +181,7 @@ type SummaryCardProps = {
 function SummaryCard({ title, value, description, icon, accent }: SummaryCardProps) {
   return (
     <div
-      className="surface-panel relative overflow-hidden p-5"
+      className="surface-panel relative overflow-hidden p-4 sm:p-5"
       style={{
         background:
           "linear-gradient(180deg, color-mix(in srgb, var(--bg-secondary) 96%, transparent), color-mix(in srgb, var(--bg-surface) 92%, transparent))",
@@ -201,7 +201,7 @@ function SummaryCard({ title, value, description, icon, accent }: SummaryCardPro
         <p className="text-[11px] font-semibold uppercase tracking-[0.12em]" style={{ color: "var(--text-muted)" }}>
           {title}
         </p>
-        <p className="text-3xl font-bold leading-none" style={{ color: "var(--text-primary)" }}>
+        <p className="text-2xl font-bold leading-none sm:text-3xl" style={{ color: "var(--text-primary)" }}>
           {value}
         </p>
         <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
@@ -387,7 +387,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="animate-fade-in-up space-y-6 pb-12">
+    <div className="animate-fade-in-up space-y-4 pb-10 sm:space-y-6 sm:pb-12">
       <section
         className="surface-panel overflow-hidden p-0"
         style={{
@@ -396,8 +396,8 @@ export default function DashboardPage() {
         }}
       >
         <div className="grid gap-6 lg:grid-cols-[1.55fr_1fr]">
-          <div className="p-6 sm:p-8">
-            <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+          <div className="p-4 sm:p-8">
+            <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:mb-8 lg:flex-row">
               <div className="space-y-3">
                 <div
                   className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]"
@@ -410,7 +410,7 @@ export default function DashboardPage() {
                   Finance overview
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: "var(--text-primary)" }}>
+                  <h1 className="text-2xl font-bold tracking-tight sm:text-4xl" style={{ color: "var(--text-primary)" }}>
                     Good day, <span style={{ color: "var(--accent-cyan)" }}>{displayName}</span>
                   </h1>
                   <p className="mt-2 max-w-xl text-sm sm:text-base" style={{ color: "var(--text-secondary)" }}>
@@ -422,7 +422,7 @@ export default function DashboardPage() {
               <button
                 type="button"
                 onClick={toggleTheme}
-                className="inline-flex h-11 items-center gap-3 rounded-xl border px-4 text-sm font-semibold transition"
+                className="inline-flex h-11 w-full items-center justify-center gap-3 rounded-xl border px-4 text-sm font-semibold transition sm:w-auto"
                 style={{
                   borderColor: "var(--border-primary)",
                   backgroundColor: "color-mix(in srgb, var(--bg-elevated) 82%, transparent)",
@@ -516,7 +516,7 @@ export default function DashboardPage() {
           </div>
 
           <div
-            className="flex flex-col justify-between gap-5 border-t p-6 sm:p-8 lg:border-l lg:border-t-0"
+            className="flex flex-col justify-between gap-5 border-t p-4 sm:p-8 lg:border-l lg:border-t-0"
             style={{ borderColor: "var(--border-primary)" }}
           >
             <div>
@@ -621,7 +621,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4">
         <SummaryCard
           title="Total spend"
           value={loading ? "..." : formatCurrency(totalSpend, displayCurrency)}
@@ -923,7 +923,7 @@ export default function DashboardPage() {
       </section>
 
       <section className="surface-panel p-0 overflow-hidden">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b px-6 py-5" style={{ borderColor: "var(--border-primary)" }}>
+        <div className="flex flex-col items-stretch justify-between gap-3 border-b px-4 py-4 sm:flex-row sm:items-center sm:px-6 sm:py-5" style={{ borderColor: "var(--border-primary)" }}>
           <div>
             <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
               Recent expenses
@@ -935,7 +935,7 @@ export default function DashboardPage() {
           <button
             onClick={() => void loadExpenses()}
             disabled={loading}
-            className="rounded-xl border px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] transition"
+            className="h-10 rounded-xl border px-4 py-2 text-xs font-semibold uppercase tracking-[0.12em] transition"
             style={{
               borderColor: "var(--border-primary)",
               backgroundColor: "color-mix(in srgb, var(--bg-surface) 78%, transparent)",
@@ -948,7 +948,7 @@ export default function DashboardPage() {
 
         {deleteError && (
           <div
-            className="border-b px-6 py-3 text-sm"
+            className="border-b px-4 py-3 text-sm sm:px-6"
             style={{
               borderColor: "var(--border-primary)",
               backgroundColor: "color-mix(in srgb, var(--accent-red) 10%, var(--bg-secondary))",
@@ -970,7 +970,7 @@ export default function DashboardPage() {
               return (
                 <div
                   key={expense._id ?? `${expense.amount}-${expense.createdAt}`}
-                  className="flex flex-col gap-4 px-6 py-5 sm:flex-row sm:items-center sm:justify-between"
+                  className="grid gap-4 px-4 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:px-6 sm:py-5"
                   style={{ borderTop: "1px solid var(--border-primary)" }}
                 >
                   <div className="flex min-w-0 items-center gap-4">
@@ -991,19 +991,21 @@ export default function DashboardPage() {
                       </p>
                     </div>
                   </div>
-                  <div className="text-left sm:text-right">
+                  <div className="flex items-end justify-between gap-4 sm:block sm:text-right">
+                    <div>
                     <p className="text-sm font-bold sm:text-base" style={{ color: "var(--text-primary)" }}>
                       {formatCurrency(expense.amount || 0, expense.currency || "INR")}
                     </p>
-                    <div className="mt-1 flex items-center gap-3 sm:justify-end">
                       <p className="text-xs uppercase tracking-[0.12em]" style={{ color: "var(--text-muted)" }}>
                         {expense.paymentType || "Payment type unspecified"}
                       </p>
+                    </div>
+                    <div className="flex items-center gap-2 sm:mt-2 sm:justify-end">
                       <button
                         type="button"
                         onClick={() => openEditExpense(expense)}
                         disabled={!expense._id}
-                        className="inline-flex h-7 w-7 items-center justify-center rounded-full border transition disabled:cursor-not-allowed disabled:opacity-50"
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-full border transition disabled:cursor-not-allowed disabled:opacity-50 sm:h-8 sm:w-8"
                         style={{
                           borderColor: "color-mix(in srgb, var(--accent-blue) 26%, var(--border-primary))",
                           backgroundColor: "color-mix(in srgb, var(--accent-blue) 8%, transparent)",
@@ -1012,13 +1014,13 @@ export default function DashboardPage() {
                         title="Update expense"
                         aria-label="Update expense"
                       >
-                        <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                        <Pencil className="h-4 w-4 sm:h-3.5 sm:w-3.5" aria-hidden="true" />
                       </button>
                       <button
                         type="button"
                         onClick={() => void handleDeleteExpense(expense)}
                         disabled={!expense._id || deletingExpenseId === expense._id}
-                        className="inline-flex h-7 w-7 items-center justify-center rounded-full border transition disabled:cursor-not-allowed disabled:opacity-50"
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-full border transition disabled:cursor-not-allowed disabled:opacity-50 sm:h-8 sm:w-8"
                         style={{
                           borderColor: "color-mix(in srgb, var(--accent-red) 24%, var(--border-primary))",
                           backgroundColor: "color-mix(in srgb, var(--accent-red) 8%, transparent)",
@@ -1039,20 +1041,20 @@ export default function DashboardPage() {
       </section>
 
       {editingExpense && editForm && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 px-4 py-6 sm:items-center">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 px-3 py-0 sm:items-center sm:px-4 sm:py-6">
           <div
-            className="w-full max-w-2xl rounded-2xl border p-0 shadow-2xl"
+            className="max-h-[calc(100dvh-1.5rem)] w-full max-w-2xl overflow-hidden rounded-t-2xl border p-0 shadow-2xl sm:max-h-[calc(100dvh-3rem)] sm:rounded-2xl"
             style={{
               borderColor: "var(--border-primary)",
               backgroundColor: "var(--bg-secondary)",
             }}
           >
-            <div className="flex items-start justify-between gap-4 border-b px-5 py-4" style={{ borderColor: "var(--border-primary)" }}>
-              <div>
+            <div className="flex items-start justify-between gap-4 border-b px-4 py-4 sm:px-5" style={{ borderColor: "var(--border-primary)" }}>
+              <div className="min-w-0">
                 <h3 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
                   Update expense
                 </h3>
-                <p className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
+                <p className="mt-1 truncate text-xs sm:text-sm" style={{ color: "var(--text-muted)" }}>
                   {editingExpense._id}
                 </p>
               </div>
@@ -1071,7 +1073,7 @@ export default function DashboardPage() {
               </button>
             </div>
 
-            <div className="grid gap-4 p-5 sm:grid-cols-2">
+            <div className="grid max-h-[calc(100dvh-14rem)] gap-4 overflow-y-auto p-4 sm:max-h-none sm:grid-cols-2 sm:p-5">
               <div>
                 <label className="label">Amount</label>
                 <input
@@ -1160,7 +1162,7 @@ export default function DashboardPage() {
               </div>
             )}
 
-            <div className="flex flex-col-reverse gap-3 border-t px-5 py-4 sm:flex-row sm:justify-end" style={{ borderColor: "var(--border-primary)" }}>
+            <div className="flex flex-col-reverse gap-3 border-t px-4 py-4 sm:flex-row sm:justify-end sm:px-5" style={{ borderColor: "var(--border-primary)" }}>
               <button type="button" onClick={closeEditExpense} className="btn-secondary" disabled={!!savingExpenseId}>
                 Cancel
               </button>

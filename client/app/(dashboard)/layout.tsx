@@ -52,23 +52,34 @@ export default function DashboardLayout({
         onCloseMobile={() => setMobileSidebarOpen(false)}
       />
 
-      <main className="min-h-screen flex-1 md:ml-60 relative flex flex-col">
+      <main className="min-h-screen min-w-0 flex-1 md:ml-60 relative flex flex-col">
         {/* Mobile menu button (only visible on mobile) */}
-        <div className="md:hidden p-4 flex items-center justify-between" style={{ borderBottom: "1px solid var(--border-primary)" }}>
+        <div
+          className="sticky top-0 z-20 md:hidden px-4 py-3 flex items-center justify-between backdrop-blur"
+          style={{
+            borderBottom: "1px solid var(--border-primary)",
+            backgroundColor: "color-mix(in srgb, var(--bg-primary) 88%, transparent)",
+          }}
+        >
           <button
             type="button"
             onClick={() => setMobileSidebarOpen(true)}
-            className="p-2 rounded-lg hover:bg-white/5 transition-opacity"
-            style={{ color: "var(--text-secondary)" }}
+            className="flex h-11 w-11 items-center justify-center rounded-xl border transition-opacity"
+            style={{ color: "var(--text-secondary)", borderColor: "var(--border-primary)" }}
+            aria-label="Open menu"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
+          <span className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>
+            Expensify<span style={{ color: "var(--accent-cyan)" }}>.ai</span>
+          </span>
+          <div className="h-11 w-11" aria-hidden="true" />
         </div>
 
         {/* Page content */}
-        <div className="flex-1 px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
+        <div className="flex-1 px-3 py-4 sm:px-6 sm:py-6 lg:px-10 lg:py-8">
           <ExpenseDataProvider>
             <div className="page-shell">{children}</div>
           </ExpenseDataProvider>
