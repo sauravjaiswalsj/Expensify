@@ -993,9 +993,9 @@ export default function DashboardPage() {
                   </div>
                   <div className="flex items-end justify-between gap-4 sm:block sm:text-right">
                     <div>
-                    <p className="text-sm font-bold sm:text-base" style={{ color: "var(--text-primary)" }}>
-                      {formatCurrency(expense.amount || 0, expense.currency || "INR")}
-                    </p>
+                      <p className="text-sm font-bold sm:text-base" style={{ color: "var(--text-primary)" }}>
+                        {formatCurrency(expense.amount || 0, expense.currency || "INR")}
+                      </p>
                       <p className="text-xs uppercase tracking-[0.12em]" style={{ color: "var(--text-muted)" }}>
                         {expense.paymentType || "Payment type unspecified"}
                       </p>
