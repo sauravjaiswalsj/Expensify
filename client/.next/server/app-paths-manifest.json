@@ -2,11 +2,13 @@
   "/_not-found/page": "app/_not-found/page.js",
   "/page": "app/page.js",
   "/(auth)/forgot-password/page": "app/(auth)/forgot-password/page.js",
-  "/(auth)/signup/page": "app/(auth)/signup/page.js",
   "/(auth)/login/page": "app/(auth)/login/page.js",
+  "/(auth)/signup/page": "app/(auth)/signup/page.js",
   "/(auth)/reset-password/page": "app/(auth)/reset-password/page.js",
   "/(auth)/verify/page": "app/(auth)/verify/page.js",
-  "/(dashboard)/analytics/page": "app/(dashboard)/analytics/page.js",
   "/(dashboard)/dashboard/page": "app/(dashboard)/dashboard/page.js",
-  "/(dashboard)/expenses/add/page": "app/(dashboard)/expenses/add/page.js"
+  "/(dashboard)/analytics/page": "app/(dashboard)/analytics/page.js",
+  "/(dashboard)/expenses/add/page": "app/(dashboard)/expenses/add/page.js",
+  "/(dashboard)/chat/page": "app/(dashboard)/chat/page.js",
+  "/(dashboard)/profile/page": "app/(dashboard)/profile/page.js"
 }

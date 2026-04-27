@@ -21,10 +21,15 @@ if (typeof globalThis.window === "undefined") {
 
 const nextConfig: NextConfig = {
   async rewrites() {
+    const apiTarget =
+      process.env.API_SERVER_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      "http://localhost:8080";
+
     return [
       {
         source: "/api/:path*",
-        destination: `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}/:path*`,
+        destination: `${apiTarget.replace(/\/$/, "")}/:path*`,
       },
     ];
   },

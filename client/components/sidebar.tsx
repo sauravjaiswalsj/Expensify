@@ -38,6 +38,20 @@ const NAV = [
 			</svg>
 		),
 	},
+	{
+		href: "/chat",
+		label: "Expense AI",
+		icon: (
+			<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+				<path
+					strokeLinecap="round"
+					strokeLinejoin="round"
+					strokeWidth={2}
+					d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-4 4v-4z"
+				/>
+			</svg>
+		),
+	},
 ];
 
 const BOTTOM_NAV = [
@@ -63,7 +77,7 @@ type SidebarProps = {
 export default function Sidebar({ mobileOpen = false, onCloseMobile }: SidebarProps) {
 	const pathname = usePathname();
 	const router = useRouter();
-	const { logout, username } = useAuth();
+	const { username, profile, logout } = useAuth();
 
 	function closeMobileIfNeeded() {
 		onCloseMobile?.();
@@ -75,8 +89,8 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile }: SidebarPr
 		router.push("/login");
 	}
 
-	const displayName = username || "test";
-	const avatarInitial = displayName[0]?.toUpperCase() ?? "T";
+	const displayName = profile.displayName || username || "User";
+	const avatarInitial = displayName[0]?.toUpperCase() ?? "U";
 
 	const sidebarContent = (
 		<>
@@ -141,7 +155,12 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile }: SidebarPr
 				))}
 				
 				{/* User Profile */}
-				<div className="mt-2 mb-1 px-3 py-2 flex items-center gap-3">
+				<Link
+					href="/profile"
+					onClick={closeMobileIfNeeded}
+					className="mt-2 mb-1 flex items-center gap-3 rounded-xl px-3 py-2 transition-colors"
+					style={{ color: "var(--text-primary)" }}
+				>
 					<div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold bg-blue-500 text-white flex-shrink-0">
 						{avatarInitial}
 					</div>
@@ -150,11 +169,10 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile }: SidebarPr
 							{displayName}
 						</p>
 						<p className="text-xs truncate leading-tight mt-0.5" style={{ color: "var(--text-muted)" }}>
-							Free plan
+							{profile.role || "Free plan"}
 						</p>
 					</div>
-				</div>
-
+				</Link>
 				<button
 					onClick={handleLogout}
 					className="group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 hover:translate-x-0.5"
