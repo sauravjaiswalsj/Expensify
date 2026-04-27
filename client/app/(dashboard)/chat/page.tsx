@@ -4,10 +4,30 @@ import { useMemo, useState, type FormEvent } from "react";
 import { useExpenseData } from "@/lib/expense-data-context";
 import { type Expense } from "@/types";
 
+const XAI_API_KEY = process.env.NEXT_PUBLIC_XAI_API_KEY;
+const XAI_RESPONSES_URL = "https://api.x.ai/v1/responses";
+const XAI_MODEL = "grok-4.20-reasoning";
+const AI_CACHE_PREFIX = "rivo-ai-cache:";
+const AI_RATE_LIMIT_KEY = "rivo-ai-rate-limit";
+const AI_RATE_LIMIT_MAX_CALLS = 8;
+const AI_RATE_LIMIT_WINDOW_MS = 24 * 60 * 60 * 1000;
+const AI_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+const MAX_EXPENSES_FOR_AI_CONTEXT = 40;
+
 type ChatMessage = {
   id: string;
   role: "user" | "assistant";
   text: string;
+};
+
+type AiCacheEntry = {
+  expiresAt: number;
+  text: string;
+};
+
+type AiRateLimit = {
+  windowStart: number;
+  count: number;
 };
 
 function parseExpenseDate(expense: Expense): Date | null {
@@ -22,6 +42,238 @@ function currencySymbol(code?: string) {
   if (code === "EUR") return "EUR ";
   if (code === "GBP") return "GBP ";
   return "₹";
+}
+
+function isInsightPrompt(input: string): boolean {
+  const normalized = input.toLowerCase();
+  const insightTerms = [
+    "insight",
+    "insighnt",
+    "spend",
+    "spending",
+    "expense",
+    "expenses",
+    "transaction",
+    "transactions",
+    "category",
+    "categories",
+    "budget",
+    "saving",
+    "save",
+    "reduce",
+    "recent",
+    "latest",
+    "trend",
+    "pattern",
+    "where is my money",
+    "money going",
+    "financial",
+    "cost",
+    "costs",
+  ];
+
+  return insightTerms.some((term) => normalized.includes(term));
+}
+
+function buildExpenseFingerprint(expenses: Expense[]) {
+  return expenses
+    .map((expense) => [
+      expense._id,
+      expense.amount,
+      expense.category,
+      expense.currency,
+      expense.date,
+      expense.updatedAt,
+      expense.createdAt,
+    ].join(":"))
+    .join("|");
+}
+
+function hashForStorage(value: string) {
+  let hash = 0;
+
+  for (let i = 0; i < value.length; i += 1) {
+    hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
+  }
+
+  return hash.toString(36);
+}
+
+function buildCacheKey(input: string, expenses: Expense[]) {
+  const normalizedPrompt = input.trim().toLowerCase().replace(/\s+/g, " ");
+  const fingerprint = buildExpenseFingerprint(expenses);
+  return `${AI_CACHE_PREFIX}${hashForStorage(`${normalizedPrompt}|${fingerprint}`)}`;
+}
+
+function readCachedAiReply(cacheKey: string): string | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const raw = window.localStorage.getItem(cacheKey);
+    if (!raw) return null;
+
+    const cached = JSON.parse(raw) as AiCacheEntry;
+    if (Date.now() > cached.expiresAt) {
+      window.localStorage.removeItem(cacheKey);
+      return null;
+    }
+
+    return cached.text;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedAiReply(cacheKey: string, text: string) {
+  if (typeof window === "undefined") return;
+
+  try {
+    const cacheEntry: AiCacheEntry = {
+      expiresAt: Date.now() + AI_CACHE_TTL_MS,
+      text,
+    };
+    window.localStorage.setItem(cacheKey, JSON.stringify(cacheEntry));
+  } catch {
+    // Cache is an optimization only; the chat should still work when storage is unavailable.
+  }
+}
+
+function canUseAiCall(): boolean {
+  if (typeof window === "undefined") return false;
+
+  try {
+    const now = Date.now();
+    const raw = window.localStorage.getItem(AI_RATE_LIMIT_KEY);
+    const current = raw ? (JSON.parse(raw) as AiRateLimit) : null;
+
+    if (!current || now - current.windowStart > AI_RATE_LIMIT_WINDOW_MS) {
+      return true;
+    }
+
+    return current.count < AI_RATE_LIMIT_MAX_CALLS;
+  } catch {
+    return true;
+  }
+}
+
+function recordAiCall() {
+  if (typeof window === "undefined") return;
+
+  try {
+    const now = Date.now();
+    const raw = window.localStorage.getItem(AI_RATE_LIMIT_KEY);
+    const current = raw ? (JSON.parse(raw) as AiRateLimit) : null;
+
+    if (!current || now - current.windowStart > AI_RATE_LIMIT_WINDOW_MS) {
+      window.localStorage.setItem(AI_RATE_LIMIT_KEY, JSON.stringify({ windowStart: now, count: 1 }));
+      return;
+    }
+
+    window.localStorage.setItem(
+      AI_RATE_LIMIT_KEY,
+      JSON.stringify({ windowStart: current.windowStart, count: current.count + 1 })
+    );
+  } catch {
+    // Local rate tracking is best-effort in this frontend-only integration.
+  }
+}
+
+function buildAiPrompt(input: string, expenses: Expense[]) {
+  const total = expenses.reduce((sum, item) => sum + (item.amount || 0), 0);
+  const topCategories = Object.entries(
+    expenses.reduce<Record<string, number>>((acc, item) => {
+      const key = item.category || "Uncategorized";
+      acc[key] = (acc[key] ?? 0) + (item.amount || 0);
+      return acc;
+    }, {})
+  )
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([category, amount]) => ({ category, amount }));
+
+  const recentExpenses = [...expenses]
+    .sort((a, b) => (parseExpenseDate(b)?.getTime() ?? 0) - (parseExpenseDate(a)?.getTime() ?? 0))
+    .slice(0, MAX_EXPENSES_FOR_AI_CONTEXT)
+    .map((expense) => ({
+      amount: expense.amount,
+      category: expense.category || "Uncategorized",
+      currency: expense.currency,
+      date: expense.date || expense.createdAt,
+      description: expense.description,
+    }));
+
+  return [
+    "You are Rivo's expense insight assistant.",
+    "Answer only with practical spending insight based on the provided expense data.",
+    "Keep the response under 110 words. Do not mention backend, APIs, rate limits, or hidden implementation details.",
+    "",
+    `User question: ${input}`,
+    "",
+    `Expense summary: ${JSON.stringify({
+      transactionCount: expenses.length,
+      total,
+      topCategories,
+      recentExpenses,
+    })}`,
+  ].join("\n");
+}
+
+function extractAiResponseText(payload: unknown): string | null {
+  if (!payload || typeof payload !== "object") return null;
+
+  const response = payload as {
+    output_text?: unknown;
+    output?: Array<{
+      content?: Array<{
+        text?: unknown;
+        type?: string;
+      }>;
+    }>;
+  };
+
+  if (typeof response.output_text === "string") {
+    return response.output_text.trim();
+  }
+
+  const text = response.output
+    ?.flatMap((item) => item.content ?? [])
+    .map((content) => content.text)
+    .filter((value): value is string => typeof value === "string")
+    .join("\n")
+    .trim();
+
+  return text || null;
+}
+
+async function requestAiInsight(input: string, expenses: Expense[]): Promise<string | null> {
+  if (!XAI_API_KEY || !isInsightPrompt(input)) return null;
+
+  const cacheKey = buildCacheKey(input, expenses);
+  const cachedReply = readCachedAiReply(cacheKey);
+  if (cachedReply) return cachedReply;
+  if (!canUseAiCall()) return null;
+
+  recordAiCall();
+
+  const response = await fetch(XAI_RESPONSES_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${XAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: XAI_MODEL,
+      input: buildAiPrompt(input, expenses),
+    }),
+  });
+
+  if (!response.ok) return null;
+
+  const text = extractAiResponseText(await response.json());
+  if (!text) return null;
+
+  writeCachedAiReply(cacheKey, text);
+  return text;
 }
 
 function buildInsightReply(input: string, expenses: Expense[]): string {
@@ -39,12 +291,19 @@ function buildInsightReply(input: string, expenses: Expense[]): string {
     .slice(0, 3);
 
   const lower = input.toLowerCase();
+  const asksAboutTopSpend =
+    lower.includes("category") ||
+    lower.includes("spend most") ||
+    lower.includes("spending the most") ||
+    lower.includes("spending most") ||
+    lower.includes("where am i spending") ||
+    lower.includes("where is my money");
 
   if (expenses.length === 0) {
     return "I don't have any expense data yet. Add a few transactions and I can start surfacing patterns, heavy categories, and recent changes.";
   }
 
-  if (lower.includes("category") || lower.includes("spend most")) {
+  if (asksAboutTopSpend) {
     return `Your highest category right now is ${topCategory?.[0] ?? "Uncategorized"}, contributing about ${currencySymbol(expenses[0]?.currency)}${(topCategory?.[1] ?? 0).toFixed(2)} of tracked spend.`;
   }
 
@@ -57,6 +316,10 @@ function buildInsightReply(input: string, expenses: Expense[]): string {
 
   if (lower.includes("save") || lower.includes("reduce") || lower.includes("cut")) {
     return `A practical place to start is ${topCategory?.[0] ?? "your top category"}. Since your tracked total is ${currencySymbol(expenses[0]?.currency)}${total.toFixed(2)}, even a small reduction there would have the most visible effect.`;
+  }
+
+  if (lower.includes("bad") || lower.includes("problem") || lower.includes("issue")) {
+    return `Your spending is not automatically bad, but ${topCategory?.[0] ?? "your top category"} is taking the biggest share at ${currencySymbol(expenses[0]?.currency)}${(topCategory?.[1] ?? 0).toFixed(2)} out of ${currencySymbol(expenses[0]?.currency)}${total.toFixed(2)} tracked. That is the first place I would review for repeat purchases or anything that no longer feels worth it.`;
   }
 
   return `Here’s the quick picture: you’ve logged ${expenses.length} expenses totaling ${currencySymbol(expenses[0]?.currency)}${total.toFixed(2)}. Your heaviest category is ${topCategory?.[0] ?? "Uncategorized"}. Ask about recent activity, top categories, or ways to reduce spend and I’ll tailor the next insight.`;
@@ -72,6 +335,7 @@ export default function ChatPage() {
       text: "Hi, I'm your expense copilot. Ask me about spend patterns, recent transactions, or where your money is going.",
     },
   ]);
+  const [isThinking, setIsThinking] = useState(false);
 
   const quickPrompts = useMemo(
     () => [
@@ -82,26 +346,43 @@ export default function ChatPage() {
     []
   );
 
-  function submitPrompt(prompt: string) {
+  async function submitPrompt(prompt: string) {
     const trimmed = prompt.trim();
-    if (!trimmed) return;
+    if (!trimmed || isThinking) return;
+
     const userMessage: ChatMessage = {
       id: `user-${Date.now()}`,
       role: "user",
       text: trimmed,
     };
-    const assistantMessage: ChatMessage = {
-      id: `assistant-${Date.now() + 1}`,
-      role: "assistant",
-      text: buildInsightReply(trimmed, expenses),
-    };
-    setMessages((current) => [...current, userMessage, assistantMessage]);
+
+    setMessages((current) => [...current, userMessage]);
     setInput("");
+    setIsThinking(true);
+
+    try {
+      const aiReply = await requestAiInsight(trimmed, expenses);
+      const assistantMessage: ChatMessage = {
+        id: `assistant-${Date.now() + 1}`,
+        role: "assistant",
+        text: aiReply ?? buildInsightReply(trimmed, expenses),
+      };
+      setMessages((current) => [...current, assistantMessage]);
+    } catch {
+      const assistantMessage: ChatMessage = {
+        id: `assistant-${Date.now() + 1}`,
+        role: "assistant",
+        text: buildInsightReply(trimmed, expenses),
+      };
+      setMessages((current) => [...current, assistantMessage]);
+    } finally {
+      setIsThinking(false);
+    }
   }
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    submitPrompt(input);
+    void submitPrompt(input);
   }
 
   return (
@@ -146,7 +427,8 @@ export default function ChatPage() {
                 <button
                   key={prompt}
                   type="button"
-                  onClick={() => submitPrompt(prompt)}
+                  onClick={() => void submitPrompt(prompt)}
+                  disabled={isThinking}
                   className="w-full rounded-2xl border px-4 py-3 text-left text-sm transition"
                   style={{
                     borderColor: "var(--border-primary)",
@@ -169,7 +451,7 @@ export default function ChatPage() {
               Conversation
             </h2>
             <p className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
-              Frontend-only chat experience with expense-aware responses.
+              Ask to get insights expense-aware responses.
             </p>
           </div>
 
@@ -196,6 +478,18 @@ export default function ChatPage() {
                 {message.text}
               </div>
             ))}
+            {isThinking ? (
+              <div
+                className="max-w-[85%] rounded-2xl border px-4 py-3 text-sm leading-6"
+                style={{
+                  backgroundColor: "color-mix(in srgb, var(--bg-surface) 82%, transparent)",
+                  borderColor: "var(--border-primary)",
+                  color: "var(--text-muted)",
+                }}
+              >
+                Thinking through your expenses...
+              </div>
+            ) : null}
           </div>
 
           <form onSubmit={handleSubmit} className="border-t px-6 py-4" style={{ borderColor: "var(--border-primary)" }}>
@@ -205,9 +499,10 @@ export default function ChatPage() {
                 placeholder="Ask about your spend, categories, or recent activity..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
+                disabled={isThinking}
               />
-              <button type="submit" className="btn-primary px-5">
-                Send
+              <button type="submit" className="btn-primary px-5" disabled={isThinking}>
+                {isThinking ? "Thinking" : "Send"}
               </button>
             </div>
           </form>
@@ -245,8 +540,8 @@ export default function ChatPage() {
               UI note
             </h2>
             <p className="mt-3 text-sm leading-6" style={{ color: "var(--text-secondary)" }}>
-              This chat tab is intentionally frontend-only right now. It gives the user a conversational place in the
-              product for AI guidance without requiring backend or model integration yet.
+              Insight prompts can use the configured AI provider with local caching and a daily browser call limit.
+              Other prompts keep using the fast frontend response.
             </p>
           </div>
         </section>

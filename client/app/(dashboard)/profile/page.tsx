@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import { BadgeCheck, Mail, ShieldCheck, UserRound } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 
 type ProfileForm = {
@@ -50,13 +51,14 @@ export default function ProfilePage() {
                 backgroundColor: "color-mix(in srgb, var(--accent-cyan) 10%, transparent)",
               }}
             >
+              <UserRound className="h-3.5 w-3.5" />
               Profile settings
             </div>
             <h1 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: "var(--text-primary)" }}>
-              Your profile
+              Rivo profile
             </h1>
             <p className="mt-2 max-w-xl text-sm sm:text-base" style={{ color: "var(--text-secondary)" }}>
-              Update the profile details shown in the app UI when you open your account from the sidebar.
+              Keep the identity, role, and contact details for your Rivo workspace current.
             </p>
           </div>
 
@@ -78,6 +80,16 @@ export default function ProfilePage() {
                 <p className="text-sm" style={{ color: "var(--text-muted)" }}>
                   @{username || "user"}
                 </p>
+                <p
+                  className="mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
+                  style={{
+                    color: "var(--accent-green)",
+                    backgroundColor: "color-mix(in srgb, var(--accent-green) 12%, transparent)",
+                  }}
+                >
+                  <BadgeCheck className="h-3.5 w-3.5" />
+                  Active workspace member
+                </p>
               </div>
             </div>
           </div>
@@ -88,10 +100,10 @@ export default function ProfilePage() {
         <form onSubmit={handleSubmit} className="surface-panel space-y-5 p-6 sm:p-7">
           <div>
             <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
-              Edit details
+              Account details
             </h2>
             <p className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
-              These changes are stored locally for the frontend experience.
+              These details personalize how Rivo presents your workspace account.
             </p>
           </div>
 
@@ -148,7 +160,7 @@ export default function ProfilePage() {
         <section className="space-y-6">
           <div className="surface-panel p-6">
             <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
-              Profile card
+              Rivo identity
             </h2>
             <div
               className="mt-5 rounded-2xl border p-5"
@@ -180,26 +192,34 @@ export default function ProfilePage() {
 
           <div className="surface-panel p-6">
             <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
-              What this does
+              Workspace access
             </h2>
             <div className="mt-4 space-y-3 text-sm" style={{ color: "var(--text-secondary)" }}>
               <div
-                className="rounded-2xl border p-4"
+                className="flex items-start gap-3 rounded-2xl border p-4"
                 style={{
                   borderColor: "var(--border-primary)",
                   backgroundColor: "color-mix(in srgb, var(--bg-surface) 74%, transparent)",
                 }}
               >
-                Clicking your user tile in the sidebar now opens this profile page.
+                <Mail className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: "var(--accent-cyan)" }} />
+                <div>
+                  <p className="font-semibold" style={{ color: "var(--text-primary)" }}>Contact identity</p>
+                  <p className="mt-1">Your email and display name help keep Rivo notifications and workspace context clear.</p>
+                </div>
               </div>
               <div
-                className="rounded-2xl border p-4"
+                className="flex items-start gap-3 rounded-2xl border p-4"
                 style={{
                   borderColor: "var(--border-primary)",
                   backgroundColor: "color-mix(in srgb, var(--bg-surface) 74%, transparent)",
                 }}
               >
-                Edited profile values show up immediately in the sidebar and profile card.
+                <ShieldCheck className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: "var(--accent-green)" }} />
+                <div>
+                  <p className="font-semibold" style={{ color: "var(--text-primary)" }}>Role visibility</p>
+                  <p className="mt-1">Your role label appears beside your workspace profile, making account ownership easier to scan.</p>
+                </div>
               </div>
             </div>
           </div>

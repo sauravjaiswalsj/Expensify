@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { CircleDollarSign } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 
 const NAV = [
@@ -97,10 +98,17 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile }: SidebarPr
 			{/* Brand */}
 			<div className="px-6 py-6">
 				<h1 className="text-lg font-bold flex items-center gap-2" style={{ color: "var(--sidebar-brand-text)" }}>
-					<span className="w-6 h-6 rounded-md flex items-center justify-center bg-blue-500 text-white text-xs">
-						$
+					<span
+						className="flex h-8 w-8 items-center justify-center rounded-full border"
+						style={{
+							borderColor: "color-mix(in srgb, var(--sidebar-brand) 62%, var(--border-primary))",
+							color: "var(--sidebar-brand)",
+							backgroundColor: "color-mix(in srgb, var(--sidebar-brand) 9%, transparent)",
+						}}
+					>
+						<CircleDollarSign className="h-5 w-5" strokeWidth={1.7} />
 					</span>
-					Rivo
+					<span className="uppercase tracking-[0.18em]">Rivo</span>
 				</h1>
 			</div>
 
@@ -161,7 +169,13 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile }: SidebarPr
 					className="mt-2 mb-1 flex items-center gap-3 rounded-xl px-3 py-2 transition-colors"
 					style={{ color: "var(--text-primary)" }}
 				>
-					<div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold bg-blue-500 text-white flex-shrink-0">
+					<div
+						className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
+						style={{
+							backgroundColor: "color-mix(in srgb, var(--sidebar-brand) 18%, transparent)",
+							color: "var(--sidebar-brand)",
+						}}
+					>
 						{avatarInitial}
 					</div>
 					<div className="flex-1 min-w-0">

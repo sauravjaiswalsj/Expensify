@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { CircleDollarSign } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { ExpenseDataProvider } from "@/lib/expense-data-context";
 import Sidebar from "@/components/sidebar";
@@ -98,10 +99,17 @@ export default function DashboardLayout({
           }}
         >
           <Link href="/dashboard" className="flex min-w-0 items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500 text-sm font-bold text-white">
-              $
+            <span
+              className="flex h-8 w-8 items-center justify-center rounded-full border"
+              style={{
+                borderColor: "color-mix(in srgb, var(--accent-cyan) 54%, var(--border-primary))",
+                color: "var(--accent-cyan)",
+                backgroundColor: "color-mix(in srgb, var(--accent-cyan) 10%, transparent)",
+              }}
+            >
+              <CircleDollarSign className="h-5 w-5" strokeWidth={1.7} />
             </span>
-            <span className="truncate text-sm font-bold" style={{ color: "var(--text-primary)" }}>
+            <span className="truncate text-sm font-bold uppercase tracking-[0.18em]" style={{ color: "var(--text-primary)" }}>
               Rivo
             </span>
           </Link>
