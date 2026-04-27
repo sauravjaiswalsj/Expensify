@@ -38,26 +38,13 @@ const NAV = [
 			</svg>
 		),
 	},
-	{
-		href: "/settings",
-		label: "Settings",
-		icon: (
-			<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-				<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-					d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-				/>
-				<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-					d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-				/>
-			</svg>
-		),
-	},
 ];
 
 const BOTTOM_NAV = [
 	{
 		key: "support",
 		label: "Support",
+		href: "mailto:support@expensify.ai",
 		icon: (
 			<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 				<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
@@ -76,7 +63,7 @@ type SidebarProps = {
 export default function Sidebar({ mobileOpen = false, onCloseMobile }: SidebarProps) {
 	const pathname = usePathname();
 	const router = useRouter();
-	const { logout } = useAuth();
+	const { logout, username } = useAuth();
 
 	function closeMobileIfNeeded() {
 		onCloseMobile?.();
@@ -88,17 +75,19 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile }: SidebarPr
 		router.push("/login");
 	}
 
+	const displayName = username || "test";
+	const avatarInitial = displayName[0]?.toUpperCase() ?? "T";
+
 	const sidebarContent = (
 		<>
 			{/* Brand */}
 			<div className="px-6 py-6">
-				<h1 className="text-lg font-bold" style={{ color: "var(--sidebar-brand)" }}>
-					Expensify<span style={{ color: "var(--sidebar-brand-text)" }}>.ai</span>
+				<h1 className="text-lg font-bold flex items-center gap-2" style={{ color: "var(--sidebar-brand-text)" }}>
+					<span className="w-6 h-6 rounded-md flex items-center justify-center bg-blue-500 text-white text-xs">
+						$
+					</span>
+					Expensify<span style={{ color: "var(--sidebar-brand)" }}>.ai</span>
 				</h1>
-				<p className="text-[10px] font-semibold tracking-[0.2em] uppercase mt-0.5"
-					style={{ color: "var(--sidebar-subtitle)" }}>
-					Intelligence Finance
-				</p>
 			</div>
 
 			{/* Main nav */}
@@ -112,7 +101,7 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile }: SidebarPr
 							key={item.href}
 							href={item.href}
 							onClick={closeMobileIfNeeded}
-							className="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200"
+							className="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 hover:translate-x-0.5"
 							style={{
 								color: active ? "var(--sidebar-active-text)" : "var(--sidebar-inactive-text)",
 								backgroundColor: active ? "var(--sidebar-active-bg)" : "transparent",
@@ -125,7 +114,7 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile }: SidebarPr
 									style={{ backgroundColor: "var(--sidebar-active-text)" }}
 								/>
 							)}
-							<span className={active ? "" : "group-hover:opacity-80"} style={active ? { color: "var(--sidebar-active-text)" } : {}}>
+							<span className={active ? "" : "group-hover:opacity-80"}>
 								{item.icon}
 							</span>
 							<span className={active ? "" : "group-hover:opacity-80"}>
@@ -137,21 +126,38 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile }: SidebarPr
 			</nav>
 
 			{/* Bottom section */}
-			<div className="px-3 py-4" style={{ borderTop: "1px solid var(--border-primary)" }}>
+			<div className="px-3 py-4 flex flex-col gap-1" style={{ borderTop: "1px solid var(--border-primary)" }}>
 				{BOTTOM_NAV.map((item) => (
-					<button
+					<a
 						key={item.key}
-						type="button"
-						className="group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200"
+						href={item.href}
+						className="group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 hover:translate-x-0.5"
 						style={{ color: "var(--sidebar-inactive-text)" }}
+						onClick={closeMobileIfNeeded}
 					>
 						<span className="group-hover:opacity-80">{item.icon}</span>
 						<span className="group-hover:opacity-80">{item.label}</span>
-					</button>
+					</a>
 				))}
+				
+				{/* User Profile */}
+				<div className="mt-2 mb-1 px-3 py-2 flex items-center gap-3">
+					<div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold bg-blue-500 text-white flex-shrink-0">
+						{avatarInitial}
+					</div>
+					<div className="flex-1 min-w-0">
+						<p className="text-sm font-semibold truncate leading-tight" style={{ color: "var(--text-primary)" }}>
+							{displayName}
+						</p>
+						<p className="text-xs truncate leading-tight mt-0.5" style={{ color: "var(--text-muted)" }}>
+							Free plan
+						</p>
+					</div>
+				</div>
+
 				<button
 					onClick={handleLogout}
-					className="group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200"
+					className="group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 hover:translate-x-0.5"
 					style={{ color: "var(--sidebar-inactive-text)" }}
 				>
 					<svg className="w-5 h-5 group-hover:opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -159,7 +165,7 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile }: SidebarPr
 							d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
 						/>
 					</svg>
-					<span className="group-hover:opacity-80">Logout</span>
+					<span className="group-hover:opacity-80">Sign out</span>
 				</button>
 			</div>
 		</>

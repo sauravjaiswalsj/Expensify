@@ -13,10 +13,10 @@ public class Authentication {
     public boolean auth(){
         org.springframework.security.core.Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
-            assert authentication != null;
-            log.info("Unable to authenticate the user: {}", authentication.getName());
+            log.info("Unable to authenticate the user");
+            return false;
         }
-        return authentication.isAuthenticated();
+        return true;
     }
     public User getCurrentUser(){
         org.springframework.security.core.Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -31,8 +31,12 @@ public class Authentication {
     public String getCurrentUserName() {
         org.springframework.security.core.Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
-            assert authentication != null;
-            log.info("Unable to authenticate the user: {}", authentication.getName());
+            log.info("Unable to authenticate the user");
+            return null;
+        }
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof org.springframework.security.core.userdetails.UserDetails userDetails) {
+            return userDetails.getUsername();
         }
         return authentication.getName();
     }

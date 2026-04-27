@@ -9,6 +9,8 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
+import java.util.Locale;
+
 @Service
 public class UserDetailedServiceImpl implements UserDetailsService {
     @Autowired
@@ -22,8 +24,11 @@ public class UserDetailedServiceImpl implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        String normalizedUsername = username.toLowerCase();
-        User user = userRepository.findByUsernameIgnoreCase(normalizedUsername);
+        String normalizedUsername = username == null ? "" : username.trim().toLowerCase(Locale.ROOT);
+        User user = userRepository.findByUsername(normalizedUsername);
+        if (user == null) {
+            user = userRepository.findByUsernameIgnoreCase(normalizedUsername);
+        }
         if (user == null) {
             throw new UsernameNotFoundException(normalizedUsername);
         }

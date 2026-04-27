@@ -110,8 +110,8 @@ export default function SignupPage() {
 
   return (
     <>
-      <h2 className="text-[22px] font-bold text-slate-900 mb-1">Create account</h2>
-      <p className="text-sm text-slate-500 mb-6">Start tracking your expenses today</p>
+      <h2 className="text-[22px] font-bold mb-1" style={{ color: "var(--text-primary)" }}>Create account</h2>
+      <p className="text-sm mb-6" style={{ color: "var(--text-muted)" }}>Start tracking your expenses today</p>
 
       {apiError && (
         <div className="mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-100 text-red-600 text-sm">
@@ -122,9 +122,9 @@ export default function SignupPage() {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1.5">First name</label>
+            <label className="label">First name</label>
             <input
-              className="w-full px-4 py-2.5 rounded-lg text-sm bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-colors"
+              className="input-field"
               type="text"
               placeholder="John"
               value={form.firstName}
@@ -134,9 +134,9 @@ export default function SignupPage() {
             {errors.firstName && <p className="error-msg">{errors.firstName}</p>}
           </div>
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Last name</label>
+            <label className="label">Last name</label>
             <input
-              className="w-full px-4 py-2.5 rounded-lg text-sm bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-colors"
+              className="input-field"
               type="text"
               placeholder="Doe"
               value={form.lastName}
@@ -148,9 +148,9 @@ export default function SignupPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Username</label>
+          <label className="label">Username</label>
           <input
-            className="w-full px-4 py-2.5 rounded-lg text-sm bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-colors"
+            className="input-field"
             type="text"
             placeholder="john_doe"
             value={form.username}
@@ -161,9 +161,9 @@ export default function SignupPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email</label>
+          <label className="label">Email</label>
           <input
-            className="w-full px-4 py-2.5 rounded-lg text-sm bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-colors"
+            className="input-field"
             type="email"
             placeholder="john@example.com"
             value={form.email}
@@ -174,10 +174,10 @@ export default function SignupPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Password</label>
+          <label className="label">Password</label>
           <div className="relative">
             <input
-              className="w-full pl-4 pr-10 py-2.5 rounded-lg text-sm bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-colors"
+              className="input-field pl-4 pr-10"
               type={showPassword ? "text" : "password"}
               placeholder="••••••••"
               value={form.password}
@@ -186,7 +186,8 @@ export default function SignupPage() {
             />
             <button
               type="button"
-              className="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-slate-600"
+              className="absolute inset-y-0 right-3 flex items-center"
+              style={{ color: "var(--text-muted)" }}
               onClick={() => setShowPassword((v) => !v)}
               tabIndex={-1}
             >
@@ -203,15 +204,15 @@ export default function SignupPage() {
             </button>
           </div>
           {errors.password && <p className="error-msg">{errors.password}</p>}
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
             Min 8 chars · 1 uppercase · 1 number · 1 special character
           </p>
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Confirm password</label>
+          <label className="label">Confirm password</label>
           <input
-            className="w-full px-4 py-2.5 rounded-lg text-sm bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-colors"
+            className="input-field"
             type={showPassword ? "text" : "password"}
             placeholder="••••••••"
             value={form.confirmPassword}
@@ -223,14 +224,14 @@ export default function SignupPage() {
           )}
         </div>
 
-        <button type="submit" className="w-full bg-[#0284c7] hover:bg-[#0369a1] text-white py-2.5 px-4 rounded-lg text-sm font-medium transition-colors" disabled={loading}>
+        <button type="submit" className="w-full btn-primary" disabled={loading}>
           {loading ? "Creating account…" : "Create account"}
         </button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-slate-500">
+      <p className="mt-6 text-center text-sm" style={{ color: "var(--text-muted)" }}>
         Already have an account?{" "}
-        <Link href="/login" className="text-sky-600 hover:text-sky-700 font-bold">
+        <Link href="/login" className="font-bold" style={{ color: "var(--accent-cyan)" }}>
           Sign in
         </Link>
       </p>

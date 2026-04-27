@@ -22,12 +22,17 @@ public class AddExpense {
         if (!authentication.auth()){
             return ResponseEntity.status(401).body(new Response(false, "User Not Authenticated"));
         }
+        String authenticatedUsername = authentication.getCurrentUserName();
+        if (authenticatedUsername == null || authenticatedUsername.isBlank()) {
+            return ResponseEntity.status(401).body(new Response(false, "Unable to resolve authenticated user"));
+        }
         if (expense == null) {
             return ResponseEntity.status(400).body(new Response(false, "Expense is empty"));
         }
         if (expense.getAmount() <= 0) {
             return ResponseEntity.status(400).body(new Response(false, "Expense amount is invalid"));
         }
+        expense.setUsername(authenticatedUsername.toLowerCase());
         var response = expenseService.addExpense(expense);
         var httpResponseStatus = response.getHeader().getHttpResponseStatus();
         int code = httpResponseStatus.value();

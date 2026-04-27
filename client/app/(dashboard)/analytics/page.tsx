@@ -81,7 +81,7 @@ export default function AnalyticsPage() {
 
   const displayCurrency = useMemo(() => {
     const currencies = Array.from(new Set(expenses.map((e) => e.currency).filter(Boolean))) as Currency[];
-    return currencies.length === 1 ? currencies[0] : ("USD" as Currency);
+    return currencies.length === 1 ? currencies[0] : ("INR" as Currency);
   }, [expenses]);
 
   const totalSpend = useMemo(
@@ -214,20 +214,17 @@ export default function AnalyticsPage() {
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8 gap-4">
         <div>
-          <h1 className="text-3xl font-bold" style={{ color: "var(--text-primary)" }}>
+          <h1 className="section-heading">
             Analytics
           </h1>
-          <p className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
+          <p className="section-subtitle">
             Deep insights into your spending patterns and financial health.
           </p>
         </div>
         <button
-          className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium self-start hover:opacity-80 transition-opacity"
-          style={{
-            backgroundColor: "var(--bg-elevated)",
-            border: "1px solid var(--border-primary)",
-            color: "var(--text-secondary)",
-          }}
+          type="button"
+          onClick={() => void loadExpenses()}
+          className="btn-secondary flex items-center gap-2 self-start"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -343,6 +340,7 @@ export default function AnalyticsPage() {
                 return (
                   <div key={point.label} className="flex-1 flex flex-col items-center gap-1">
                     <div className="w-full flex items-end justify-center h-44">
+                      <div
                         className="w-full max-w-7 rounded-t-md hover:opacity-80 cursor-pointer transition-[height]"
                         style={{
                           height: `${height}%`,
