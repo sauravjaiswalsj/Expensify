@@ -11,6 +11,7 @@ import type {
 
 const configuredBaseUrl = (process.env.NEXT_PUBLIC_API_URL || "").trim();
 const BASE_URL = configuredBaseUrl || "/api";
+export const AUTH_EXPIRED_EVENT = "expensify:auth-expired";
 
 function buildUrl(path: string): string {
   const normalizedBase = BASE_URL.endsWith("/") ? BASE_URL.slice(0, -1) : BASE_URL;
@@ -55,6 +56,26 @@ export function removeStoredUsername(): void {
   storage()?.removeItem("username");
 }
 
+function clearStoredAuth(): void {
+  removeToken();
+  removeStoredUsername();
+  storage()?.removeItem("expensify-profile");
+}
+
+function isAuthEndpoint(path: string): boolean {
+  return path.startsWith("/auth") || path.startsWith("auth");
+}
+
+function handleExpiredAuth(path: string, status: number): void {
+  const token = getToken();
+  if (!token || status !== 401 || isAuthEndpoint(path)) return;
+
+  clearStoredAuth();
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));
+  }
+}
+
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -95,6 +116,7 @@ async function request<T>(
   const text = await response.text();
 
   if (!response.ok) {
+    handleExpiredAuth(path, response.status);
     throw new ApiError(response.status, text || `Error ${response.status}`);
   }
 
@@ -151,4 +173,16 @@ export const expenseApi = {
     }),
 
   getAll: () => request<ApiResponse<Expense[]>>("/expenses"),
+
+  remove: (data: Expense) =>
+    request<ApiResponse<Expense>>("/remove", {
+      method: "DELETE",
+      body: JSON.stringify(data),
+    }),
+
+  update: (data: Expense) =>
+    request<ApiResponse<Expense>>("/update", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
 };

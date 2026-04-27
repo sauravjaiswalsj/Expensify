@@ -15,6 +15,7 @@ import {
   getStoredUsername,
   setStoredUsername,
   removeStoredUsername,
+  AUTH_EXPIRED_EVENT,
 } from "@/lib/api";
 
 export interface UserProfile {
@@ -103,6 +104,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // ignore
     }
   }, []);
+
+  useEffect(() => {
+    function handleAuthExpired() {
+      logout();
+    }
+
+    window.addEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
+    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
+  }, [logout]);
 
   const updateProfile = useCallback((updates: Partial<UserProfile>) => {
     setProfile((current) => {

@@ -2,10 +2,12 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
+import { Pencil, X } from "lucide-react";
+import { ApiError, expenseApi } from "@/lib/api";
 import { useExpenseData } from "@/lib/expense-data-context";
 import { useAuth } from "@/lib/auth-context";
 import { useTheme } from "@/lib/theme-context";
-import { CURRENCIES, type Expense, type Currency } from "@/types";
+import { CURRENCIES, EXPENSE_CATEGORIES, PAYMENT_TYPES, type Expense, type Currency } from "@/types";
 
 function parseExpenseDate(expense: Expense): Date | null {
   const raw = expense.date || expense.createdAt || expense.updatedAt;
@@ -82,6 +84,31 @@ const SPLIT_COLORS = [
   "var(--accent-pink)",
   "var(--text-muted)",
 ];
+
+type EditExpenseForm = {
+  amount: string;
+  currency: Currency;
+  category: string;
+  description: string;
+  paymentType: string;
+  date: string;
+};
+
+function toDateInputValue(expense: Expense): string {
+  const date = parseExpenseDate(expense);
+  return date ? date.toISOString().split("T")[0] : new Date().toISOString().split("T")[0];
+}
+
+function buildEditForm(expense: Expense): EditExpenseForm {
+  return {
+    amount: expense.amount ? String(expense.amount) : "",
+    currency: expense.currency || "INR",
+    category: expense.category || "",
+    description: expense.description || "",
+    paymentType: expense.paymentType || "",
+    date: toDateInputValue(expense),
+  };
+}
 
 function getTransactionIcon(category: string): ReactNode {
   const lower = category.toLowerCase();
@@ -190,6 +217,12 @@ export default function DashboardPage() {
   const { username } = useAuth();
   const { theme, toggleTheme, isDark } = useTheme();
   const [period, setPeriod] = useState<"7D" | "30D" | "90D" | "ALL" | "CUSTOM">("30D");
+  const [deletingExpenseId, setDeletingExpenseId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [editForm, setEditForm] = useState<EditExpenseForm | null>(null);
+  const [savingExpenseId, setSavingExpenseId] = useState<string | null>(null);
+  const [updateError, setUpdateError] = useState<string | null>(null);
   const [customStartDate, setCustomStartDate] = useState(() => {
     const start = new Date();
     start.setDate(start.getDate() - 30);
@@ -273,6 +306,85 @@ export default function DashboardPage() {
 
   const latestExpenseDate = sortedExpenses[0] ? parseExpenseDate(sortedExpenses[0]) : null;
   const displayName = username || "there";
+
+  async function handleDeleteExpense(expense: Expense) {
+    if (!expense._id || deletingExpenseId) return;
+
+    setDeleteError(null);
+    setDeletingExpenseId(expense._id);
+    try {
+      await expenseApi.remove(expense);
+      await loadExpenses();
+    } catch (err: unknown) {
+      setDeleteError(
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : "Failed to delete expense."
+      );
+    } finally {
+      setDeletingExpenseId(null);
+    }
+  }
+
+  function openEditExpense(expense: Expense) {
+    setUpdateError(null);
+    setEditingExpense(expense);
+    setEditForm(buildEditForm(expense));
+  }
+
+  function closeEditExpense() {
+    if (savingExpenseId) return;
+    setEditingExpense(null);
+    setEditForm(null);
+    setUpdateError(null);
+  }
+
+  function updateEditForm<K extends keyof EditExpenseForm>(field: K, value: EditExpenseForm[K]) {
+    setEditForm((current) => (current ? { ...current, [field]: value } : current));
+  }
+
+  async function handleUpdateExpense() {
+    if (!editingExpense?._id || !editForm || savingExpenseId) return;
+
+    const amount = parseFloat(editForm.amount);
+    if (!editForm.amount || Number.isNaN(amount) || amount <= 0) {
+      setUpdateError("Enter an amount greater than 0.");
+      return;
+    }
+    if (!editForm.category || !editForm.paymentType || !editForm.date) {
+      setUpdateError("Category, payment method, and date are required.");
+      return;
+    }
+
+    setSavingExpenseId(editingExpense._id);
+    setUpdateError(null);
+    try {
+      await expenseApi.update({
+        ...editingExpense,
+        amount,
+        currency: editForm.currency,
+        category: editForm.category,
+        description: editForm.description.trim(),
+        paymentType: editForm.paymentType,
+        date: new Date(`${editForm.date}T12:00:00`).toISOString(),
+      });
+      await loadExpenses();
+      setEditingExpense(null);
+      setEditForm(null);
+    } catch (err: unknown) {
+      setUpdateError(
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : "Failed to update expense."
+      );
+    } finally {
+      setSavingExpenseId(null);
+    }
+  }
 
   return (
     <div className="animate-fade-in-up space-y-6 pb-12">
@@ -834,6 +946,19 @@ export default function DashboardPage() {
           </button>
         </div>
 
+        {deleteError && (
+          <div
+            className="border-b px-6 py-3 text-sm"
+            style={{
+              borderColor: "var(--border-primary)",
+              backgroundColor: "color-mix(in srgb, var(--accent-red) 10%, var(--bg-secondary))",
+              color: "var(--text-primary)",
+            }}
+          >
+            {deleteError}
+          </div>
+        )}
+
         {!loading && sortedExpenses.length === 0 ? (
           <div className="p-10 text-center text-sm" style={{ color: "var(--text-muted)" }}>
             No recent expenses found.
@@ -870,9 +995,41 @@ export default function DashboardPage() {
                     <p className="text-sm font-bold sm:text-base" style={{ color: "var(--text-primary)" }}>
                       {formatCurrency(expense.amount || 0, expense.currency || "INR")}
                     </p>
-                    <p className="mt-1 text-xs uppercase tracking-[0.12em]" style={{ color: "var(--text-muted)" }}>
-                      {expense.paymentType || "Payment type unspecified"}
-                    </p>
+                    <div className="mt-1 flex items-center gap-3 sm:justify-end">
+                      <p className="text-xs uppercase tracking-[0.12em]" style={{ color: "var(--text-muted)" }}>
+                        {expense.paymentType || "Payment type unspecified"}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => openEditExpense(expense)}
+                        disabled={!expense._id}
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-full border transition disabled:cursor-not-allowed disabled:opacity-50"
+                        style={{
+                          borderColor: "color-mix(in srgb, var(--accent-blue) 26%, var(--border-primary))",
+                          backgroundColor: "color-mix(in srgb, var(--accent-blue) 8%, transparent)",
+                          color: "var(--accent-blue)",
+                        }}
+                        title="Update expense"
+                        aria-label="Update expense"
+                      >
+                        <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleDeleteExpense(expense)}
+                        disabled={!expense._id || deletingExpenseId === expense._id}
+                        className="inline-flex h-7 w-7 items-center justify-center rounded-full border transition disabled:cursor-not-allowed disabled:opacity-50"
+                        style={{
+                          borderColor: "color-mix(in srgb, var(--accent-red) 24%, var(--border-primary))",
+                          backgroundColor: "color-mix(in srgb, var(--accent-red) 8%, transparent)",
+                          color: "var(--accent-red)",
+                        }}
+                        title="Delete expense"
+                        aria-label="Delete expense"
+                      >
+                        <X className="h-4 w-4" aria-hidden="true" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
@@ -880,6 +1037,140 @@ export default function DashboardPage() {
           </div>
         )}
       </section>
+
+      {editingExpense && editForm && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 px-4 py-6 sm:items-center">
+          <div
+            className="w-full max-w-2xl rounded-2xl border p-0 shadow-2xl"
+            style={{
+              borderColor: "var(--border-primary)",
+              backgroundColor: "var(--bg-secondary)",
+            }}
+          >
+            <div className="flex items-start justify-between gap-4 border-b px-5 py-4" style={{ borderColor: "var(--border-primary)" }}>
+              <div>
+                <h3 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+                  Update expense
+                </h3>
+                <p className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
+                  {editingExpense._id}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closeEditExpense}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border transition"
+                style={{
+                  borderColor: "var(--border-primary)",
+                  color: "var(--text-secondary)",
+                }}
+                title="Close"
+                aria-label="Close update expense"
+              >
+                <X className="h-4 w-4" aria-hidden="true" />
+              </button>
+            </div>
+
+            <div className="grid gap-4 p-5 sm:grid-cols-2">
+              <div>
+                <label className="label">Amount</label>
+                <input
+                  className="input-field"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={editForm.amount}
+                  onChange={(event) => updateEditForm("amount", event.target.value)}
+                />
+              </div>
+              <div>
+                <label className="label">Currency</label>
+                <select
+                  className="input-field"
+                  value={editForm.currency}
+                  onChange={(event) => updateEditForm("currency", event.target.value as Currency)}
+                >
+                  {CURRENCIES.map((currency) => (
+                    <option key={currency.code} value={currency.code}>
+                      {currency.code} - {currency.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="label">Category</label>
+                <select
+                  className="input-field"
+                  value={editForm.category}
+                  onChange={(event) => updateEditForm("category", event.target.value)}
+                >
+                  <option value="">Select category</option>
+                  {EXPENSE_CATEGORIES.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="label">Payment method</label>
+                <select
+                  className="input-field"
+                  value={editForm.paymentType}
+                  onChange={(event) => updateEditForm("paymentType", event.target.value)}
+                >
+                  <option value="">Select payment method</option>
+                  {PAYMENT_TYPES.map((paymentType) => (
+                    <option key={paymentType} value={paymentType}>
+                      {paymentType}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="label">Date</label>
+                <input
+                  className="input-field"
+                  type="date"
+                  value={editForm.date}
+                  onChange={(event) => updateEditForm("date", event.target.value)}
+                />
+              </div>
+              <div>
+                <label className="label">Description</label>
+                <input
+                  className="input-field"
+                  type="text"
+                  value={editForm.description}
+                  onChange={(event) => updateEditForm("description", event.target.value)}
+                />
+              </div>
+            </div>
+
+            {updateError && (
+              <div
+                className="mx-5 mb-4 rounded-xl border px-4 py-3 text-sm"
+                style={{
+                  borderColor: "color-mix(in srgb, var(--accent-red) 24%, var(--border-primary))",
+                  backgroundColor: "color-mix(in srgb, var(--accent-red) 10%, var(--bg-secondary))",
+                  color: "var(--text-primary)",
+                }}
+              >
+                {updateError}
+              </div>
+            )}
+
+            <div className="flex flex-col-reverse gap-3 border-t px-5 py-4 sm:flex-row sm:justify-end" style={{ borderColor: "var(--border-primary)" }}>
+              <button type="button" onClick={closeEditExpense} className="btn-secondary" disabled={!!savingExpenseId}>
+                Cancel
+              </button>
+              <button type="button" onClick={() => void handleUpdateExpense()} className="btn-primary" disabled={!!savingExpenseId}>
+                {savingExpenseId ? "Saving..." : "Save changes"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

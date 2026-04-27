@@ -17,7 +17,7 @@ export default function DashboardLayout({
 
   useEffect(() => {
     if (hydrated && !isAuthenticated) {
-      router.replace("/login");
+      router.replace("/login?reason=session-expired");
     }
   }, [hydrated, isAuthenticated, router]);
 
