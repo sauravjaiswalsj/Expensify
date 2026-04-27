@@ -465,7 +465,7 @@ export default function DashboardPage() {
 
             <div className="grid gap-3 sm:grid-cols-3">
               <div
-                className="rounded-2xl border p-4"
+                className="rounded-xl border p-3 sm:rounded-2xl sm:p-4"
                 style={{
                   borderColor: "var(--border-primary)",
                   backgroundColor: "color-mix(in srgb, var(--bg-surface) 72%, transparent)",
@@ -474,12 +474,12 @@ export default function DashboardPage() {
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: "var(--text-muted)" }}>
                   Active period
                 </p>
-                <p className="mt-2 text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+                <p className="mt-2 text-base font-semibold sm:text-lg" style={{ color: "var(--text-primary)" }}>
                   {periodLabel}
                 </p>
               </div>
               <div
-                className="rounded-2xl border p-4"
+                className="rounded-xl border p-3 sm:rounded-2xl sm:p-4"
                 style={{
                   borderColor: "var(--border-primary)",
                   backgroundColor: "color-mix(in srgb, var(--bg-surface) 72%, transparent)",
@@ -488,7 +488,7 @@ export default function DashboardPage() {
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: "var(--text-muted)" }}>
                   Most recent activity
                 </p>
-                <p className="mt-2 text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+                <p className="mt-2 text-base font-semibold sm:text-lg" style={{ color: "var(--text-primary)" }}>
                   {latestExpenseDate
                     ? latestExpenseDate.toLocaleDateString("en-US", {
                         month: "short",
@@ -499,7 +499,7 @@ export default function DashboardPage() {
                 </p>
               </div>
               <div
-                className="rounded-2xl border p-4"
+                className="rounded-xl border p-3 sm:rounded-2xl sm:p-4"
                 style={{
                   borderColor: "var(--border-primary)",
                   backgroundColor: "color-mix(in srgb, var(--bg-surface) 72%, transparent)",
@@ -508,7 +508,7 @@ export default function DashboardPage() {
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: "var(--text-muted)" }}>
                   Expense cadence
                 </p>
-                <p className="mt-2 text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+                <p className="mt-2 text-base font-semibold sm:text-lg" style={{ color: "var(--text-primary)" }}>
                   {numTransactions > 0 ? `${numTransactions} tracked` : "Start logging"}
                 </p>
               </div>
@@ -528,7 +528,7 @@ export default function DashboardPage() {
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-5 gap-2 sm:flex sm:flex-wrap">
               {(["7D", "30D", "90D", "ALL", "CUSTOM"] as const).map((p) => {
                 const isActive = period === p;
                 return (
@@ -536,7 +536,7 @@ export default function DashboardPage() {
                     key={p}
                     type="button"
                     onClick={() => setPeriod(p)}
-                    className="rounded-xl px-4 py-2 text-xs font-semibold tracking-[0.12em] transition"
+                    className="rounded-xl px-2 py-2 text-xs font-semibold tracking-[0.08em] transition sm:px-4 sm:tracking-[0.12em]"
                     style={{
                       background: isActive
                         ? "var(--hero-gradient)"
@@ -578,7 +578,7 @@ export default function DashboardPage() {
             )}
 
             <div
-              className="rounded-2xl border p-4"
+              className="rounded-xl border p-3 sm:rounded-2xl sm:p-4"
               style={{
                 borderColor: "var(--border-primary)",
                 backgroundColor: "color-mix(in srgb, var(--bg-surface) 80%, transparent)",
@@ -679,7 +679,7 @@ export default function DashboardPage() {
       </section>
 
       <section className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-        <div className="surface-panel p-6">
+        <div className="surface-panel p-4 sm:p-6">
           <div className="mb-5 flex items-start justify-between gap-4">
             <div>
               <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
@@ -694,7 +694,7 @@ export default function DashboardPage() {
           <div className="grid gap-3 sm:grid-cols-2">
             <Link
               href="/expenses/add"
-              className="rounded-2xl border p-4 transition"
+              className="rounded-xl border p-3 transition sm:rounded-2xl sm:p-4"
               style={{
                 borderColor: "var(--border-primary)",
                 backgroundColor: "color-mix(in srgb, var(--bg-surface) 78%, transparent)",
@@ -702,7 +702,7 @@ export default function DashboardPage() {
             >
               <div className="flex items-start gap-4">
                 <div
-                  className="flex h-12 w-12 items-center justify-center rounded-2xl"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl sm:h-12 sm:w-12 sm:rounded-2xl"
                   style={{ background: "var(--hero-gradient)", color: "#ffffff" }}
                 >
                   <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -722,7 +722,7 @@ export default function DashboardPage() {
 
             <Link
               href="/analytics"
-              className="rounded-2xl border p-4 transition"
+              className="rounded-xl border p-3 transition sm:rounded-2xl sm:p-4"
               style={{
                 borderColor: "var(--border-primary)",
                 backgroundColor: "color-mix(in srgb, var(--bg-surface) 78%, transparent)",
@@ -730,7 +730,7 @@ export default function DashboardPage() {
             >
               <div className="flex items-start gap-4">
                 <div
-                  className="flex h-12 w-12 items-center justify-center rounded-2xl"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl sm:h-12 sm:w-12 sm:rounded-2xl"
                   style={{
                     backgroundColor: "color-mix(in srgb, var(--accent-violet) 15%, transparent)",
                     color: "var(--accent-violet)",
@@ -753,7 +753,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        <div className="surface-panel p-6">
+        <div className="surface-panel p-4 sm:p-6">
           <div className="mb-5 flex items-start justify-between gap-4">
             <div>
               <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
@@ -766,7 +766,7 @@ export default function DashboardPage() {
           </div>
 
           {!loading && categorySplit.length === 0 ? (
-            <div className="flex h-[180px] items-center justify-center rounded-2xl border" style={{ borderColor: "var(--border-primary)" }}>
+            <div className="flex h-[140px] items-center justify-center rounded-xl border sm:h-[180px] sm:rounded-2xl" style={{ borderColor: "var(--border-primary)" }}>
               <p className="text-sm" style={{ color: "var(--text-muted)" }}>
                 No category data to show.
               </p>
@@ -808,8 +808,8 @@ export default function DashboardPage() {
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[1.35fr_0.65fr]">
-        <div className="surface-panel p-6">
-          <div className="mb-6 flex items-start justify-between gap-4">
+        <div className="surface-panel p-4 sm:p-6">
+          <div className="mb-5 flex flex-col items-start justify-between gap-3 sm:mb-6 sm:flex-row sm:gap-4">
             <div>
               <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
                 Monthly trend
@@ -819,7 +819,7 @@ export default function DashboardPage() {
               </p>
             </div>
             <div
-              className="rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]"
+              className="rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] sm:tracking-[0.16em]"
               style={{
                 borderColor: "var(--border-primary)",
                 color: "var(--text-secondary)",
@@ -831,18 +831,18 @@ export default function DashboardPage() {
           </div>
 
           {!loading && monthlyTrend.length === 0 ? (
-            <div className="flex h-[260px] items-center justify-center rounded-2xl border" style={{ borderColor: "var(--border-primary)" }}>
+            <div className="flex h-[180px] items-center justify-center rounded-xl border sm:h-[260px] sm:rounded-2xl" style={{ borderColor: "var(--border-primary)" }}>
               <p className="text-sm" style={{ color: "var(--text-muted)" }}>
                 No data available for the selected period.
               </p>
             </div>
           ) : (
-            <div className="grid h-[260px] grid-cols-[repeat(auto-fit,minmax(44px,1fr))] items-end gap-3">
+            <div className="grid h-[210px] grid-cols-[repeat(auto-fit,minmax(34px,1fr))] items-end gap-2 sm:h-[260px] sm:grid-cols-[repeat(auto-fit,minmax(44px,1fr))] sm:gap-3">
               {monthlyTrend.map((point, index) => {
                 const height = maxTrendValue > 0 ? Math.max((point.amount / maxTrendValue) * 100, 8) : 0;
                 return (
                   <div key={`${point.label}-${index}`} className="flex h-full flex-col justify-end gap-3">
-                    <div className="flex-1 rounded-2xl border px-2 py-3" style={{ borderColor: "var(--border-primary)" }}>
+                    <div className="flex-1 rounded-xl border px-1.5 py-2 sm:rounded-2xl sm:px-2 sm:py-3" style={{ borderColor: "var(--border-primary)" }}>
                       <div className="flex h-full items-end justify-center">
                         <div
                           className="w-full max-w-[34px] rounded-2xl transition-all"
@@ -860,7 +860,7 @@ export default function DashboardPage() {
                       <p className="text-[11px] font-semibold tracking-[0.14em]" style={{ color: "var(--text-primary)" }}>
                         {point.label}
                       </p>
-                      <p className="mt-1 text-[11px]" style={{ color: "var(--text-muted)" }}>
+                      <p className="mt-1 hidden text-[11px] sm:block" style={{ color: "var(--text-muted)" }}>
                         {formatCurrency(point.amount, displayCurrency)}
                       </p>
                     </div>
@@ -871,7 +871,7 @@ export default function DashboardPage() {
           )}
         </div>
 
-        <div className="surface-panel p-6">
+        <div className="surface-panel p-4 sm:p-6">
           <div className="mb-6">
             <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
               Payment method split
@@ -882,7 +882,7 @@ export default function DashboardPage() {
           </div>
 
           {!loading && paymentSplit.length === 0 ? (
-            <div className="flex h-[260px] items-center justify-center rounded-2xl border" style={{ borderColor: "var(--border-primary)" }}>
+            <div className="flex h-[180px] items-center justify-center rounded-xl border sm:h-[260px] sm:rounded-2xl" style={{ borderColor: "var(--border-primary)" }}>
               <p className="text-sm" style={{ color: "var(--text-muted)" }}>
                 No payment method data to show.
               </p>
@@ -892,7 +892,7 @@ export default function DashboardPage() {
               {paymentSplit.map((item, index) => (
                 <div
                   key={`pm-${index}`}
-                  className="rounded-2xl border p-4"
+                  className="rounded-xl border p-3 sm:rounded-2xl sm:p-4"
                   style={{
                     borderColor: "var(--border-primary)",
                     backgroundColor: "color-mix(in srgb, var(--bg-surface) 76%, transparent)",

@@ -216,7 +216,9 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile }: SidebarPr
 				/>
 
 				<aside
-					className={`relative h-full w-72 max-w-[85vw] flex flex-col transition-transform duration-200`}
+					className={`relative h-full w-72 max-w-[85vw] flex flex-col transition-transform duration-200 ${
+						mobileOpen ? "translate-x-0" : "-translate-x-full"
+					}`}
 					style={{ backgroundColor: "var(--sidebar-bg)" }}
 				>
 					<div className="flex justify-end p-3" style={{ borderBottom: "1px solid var(--border-primary)" }}>
