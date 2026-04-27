@@ -110,8 +110,8 @@ export default function SignupPage() {
 
   return (
     <>
-      <h2 className="text-xl font-bold text-slate-900 mb-1">Create account</h2>
-      <p className="text-sm text-slate-500 mb-6">Start tracking your expenses today</p>
+      <h2 className="text-[22px] font-bold mb-1" style={{ color: "var(--text-primary)" }}>Create account</h2>
+      <p className="text-sm mb-6" style={{ color: "var(--text-muted)" }}>Start tracking your expenses today</p>
 
       {apiError && (
         <div className="mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-100 text-red-600 text-sm">
@@ -177,7 +177,7 @@ export default function SignupPage() {
           <label className="label">Password</label>
           <div className="relative">
             <input
-              className="input-field pr-10"
+              className="input-field pl-4 pr-10"
               type={showPassword ? "text" : "password"}
               placeholder="••••••••"
               value={form.password}
@@ -186,7 +186,8 @@ export default function SignupPage() {
             />
             <button
               type="button"
-              className="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-slate-600"
+              className="absolute inset-y-0 right-3 flex items-center"
+              style={{ color: "var(--text-muted)" }}
               onClick={() => setShowPassword((v) => !v)}
               tabIndex={-1}
             >
@@ -203,7 +204,7 @@ export default function SignupPage() {
             </button>
           </div>
           {errors.password && <p className="error-msg">{errors.password}</p>}
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
             Min 8 chars · 1 uppercase · 1 number · 1 special character
           </p>
         </div>
@@ -223,14 +224,14 @@ export default function SignupPage() {
           )}
         </div>
 
-        <button type="submit" className="btn-primary" disabled={loading}>
+        <button type="submit" className="w-full btn-primary" disabled={loading}>
           {loading ? "Creating account…" : "Create account"}
         </button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-slate-500">
+      <p className="mt-6 text-center text-sm" style={{ color: "var(--text-muted)" }}>
         Already have an account?{" "}
-        <Link href="/login" className="text-brand-600 hover:text-brand-700 font-semibold">
+        <Link href="/login" className="font-bold" style={{ color: "var(--accent-cyan)" }}>
           Sign in
         </Link>
       </p>

@@ -45,8 +45,8 @@ export default function LoginPage() {
 
   return (
     <>
-      <h2 className="text-xl font-bold text-slate-900 mb-1">Welcome back</h2>
-      <p className="text-sm text-slate-500 mb-6">Sign in to your account</p>
+      <h2 className="text-[22px] font-bold mb-1" style={{ color: "var(--text-primary)" }}>Welcome back</h2>
+      <p className="text-sm mb-6" style={{ color: "var(--text-muted)" }}>Sign in to your account</p>
 
       {error && (
         <div className="mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-100 text-red-600 text-sm">
@@ -72,7 +72,7 @@ export default function LoginPage() {
           <label className="label">Password</label>
           <div className="relative">
             <input
-              className="input-field pr-10"
+              className="input-field pl-4 pr-10"
               type={showPassword ? "text" : "password"}
               placeholder="••••••••"
               value={password}
@@ -82,7 +82,8 @@ export default function LoginPage() {
             />
             <button
               type="button"
-              className="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-slate-600"
+              className="absolute inset-y-0 right-3 flex items-center transition-colors"
+              style={{ color: "var(--text-muted)" }}
               onClick={() => setShowPassword((v) => !v)}
               tabIndex={-1}
             >
@@ -101,28 +102,29 @@ export default function LoginPage() {
           <div className="mt-1.5 text-right">
             <Link
               href="/forgot-password"
-              className="text-xs text-brand-600 hover:text-brand-700 font-medium"
+              className="text-xs font-medium"
+              style={{ color: "var(--accent-cyan)" }}
             >
               Forgot password?
             </Link>
           </div>
         </div>
 
-        <button type="submit" className="btn-primary" disabled={loading}>
+        <button type="submit" className="w-full btn-primary" disabled={loading}>
           {loading ? "Signing in…" : "Sign in"}
         </button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-slate-500">
+      <p className="mt-6 text-center text-sm" style={{ color: "var(--text-muted)" }}>
         Don&apos;t have an account?{" "}
-        <Link href="/signup" className="text-brand-600 hover:text-brand-700 font-semibold">
+        <Link href="/signup" className="font-bold" style={{ color: "var(--accent-cyan)" }}>
           Create one
         </Link>
       </p>
 
-      <p className="mt-2 text-center text-sm text-slate-500">
+      <p className="mt-2 text-center text-sm" style={{ color: "var(--text-muted)" }}>
         Need to verify your account?{" "}
-        <Link href="/verify" className="text-brand-600 hover:text-brand-700 font-semibold">
+        <Link href="/verify" className="font-bold" style={{ color: "var(--accent-cyan)" }}>
           Verify email
         </Link>
       </p>

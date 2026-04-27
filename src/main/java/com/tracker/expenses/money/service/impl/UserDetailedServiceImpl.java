@@ -9,6 +9,8 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
+import java.util.Locale;
+
 @Service
 public class UserDetailedServiceImpl implements UserDetailsService {
     @Autowired
@@ -22,9 +24,13 @@ public class UserDetailedServiceImpl implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        User user = userRepository.findByUsername(username);
+        String normalizedUsername = username == null ? "" : username.trim().toLowerCase(Locale.ROOT);
+        User user = userRepository.findByUsername(normalizedUsername);
         if (user == null) {
-            throw new UsernameNotFoundException(username);
+            user = userRepository.findByUsernameIgnoreCase(normalizedUsername);
+        }
+        if (user == null) {
+            throw new UsernameNotFoundException(normalizedUsername);
         }
         SimpleGrantedAuthority authority;
         if (user.getRole() == null)

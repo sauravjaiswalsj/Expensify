@@ -12,8 +12,8 @@ if (typeof globalThis.window === "undefined") {
         getItem() {
           return null;
         },
-        setItem() {},
-        removeItem() {},
+        setItem() { },
+        removeItem() { },
       },
     });
   }
@@ -24,7 +24,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/api/:path*",
-        destination: "http://localhost:8080/:path*",
+        destination: `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}/:path*`,
       },
     ];
   },

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { ExpenseDataProvider } from "@/lib/expense-data-context";
 import Sidebar from "@/components/sidebar";
 
 export default function DashboardLayout({
@@ -20,12 +21,24 @@ export default function DashboardLayout({
     }
   }, [hydrated, isAuthenticated, router]);
 
-  // Don't render anything until auth state is read from storage.
-  // Prevents a flash-redirect to /login on every page load.
   if (!hydrated) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="w-6 h-6 border-2 border-brand-600 border-t-transparent rounded-full animate-spin" />
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ backgroundColor: "var(--bg-primary)" }}
+      >
+        <div className="flex flex-col items-center gap-3">
+          <div
+            className="w-8 h-8 border-2 rounded-full animate-spin"
+            style={{
+              borderColor: "var(--accent-cyan)",
+              borderTopColor: "transparent",
+            }}
+          />
+          <span className="text-sm" style={{ color: "var(--text-muted)" }}>
+            Loading...
+          </span>
+        </div>
       </div>
     );
   }
@@ -33,38 +46,32 @@ export default function DashboardLayout({
   if (!isAuthenticated) return null;
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen" style={{ backgroundColor: "var(--bg-primary)" }}>
       <Sidebar
         mobileOpen={mobileSidebarOpen}
         onCloseMobile={() => setMobileSidebarOpen(false)}
       />
 
-      <main className="min-h-screen flex-1 md:ml-64">
-        <div className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50/95 px-4 py-3 backdrop-blur md:hidden">
+      <main className="min-h-screen flex-1 md:ml-60 relative flex flex-col">
+        {/* Mobile menu button (only visible on mobile) */}
+        <div className="md:hidden p-4 flex items-center justify-between" style={{ borderBottom: "1px solid var(--border-primary)" }}>
           <button
             type="button"
             onClick={() => setMobileSidebarOpen(true)}
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700"
+            className="p-2 rounded-lg hover:bg-white/5 transition-opacity"
+            style={{ color: "var(--text-secondary)" }}
           >
-            <svg
-              className="h-4 w-4"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 6h16M4 12h16M4 18h16"
-              />
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
-            Menu
           </button>
         </div>
 
-        <div className="mx-auto w-full max-w-5xl px-4 py-5 sm:px-6 sm:py-8">
-          {children}
+        {/* Page content */}
+        <div className="flex-1 px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
+          <ExpenseDataProvider>
+            <div className="page-shell">{children}</div>
+          </ExpenseDataProvider>
         </div>
       </main>
     </div>

@@ -9,17 +9,9 @@ const NAV = [
 		href: "/dashboard",
 		label: "Dashboard",
 		icon: (
-			<svg
-				className="w-5 h-5"
-				fill="none"
-				viewBox="0 0 24 24"
-				stroke="currentColor"
-			>
-				<path
-					strokeLinecap="round"
-					strokeLinejoin="round"
-					strokeWidth={2}
-					d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+			<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+				<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+					d="M4 5a1 1 0 011-1h4a1 1 0 011 1v5a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 13a1 1 0 011-1h4a1 1 0 011 1v6a1 1 0 01-1 1h-4a1 1 0 01-1-1v-6z"
 				/>
 			</svg>
 		),
@@ -28,17 +20,35 @@ const NAV = [
 		href: "/expenses/add",
 		label: "Add Expense",
 		icon: (
-			<svg
-				className="w-5 h-5"
-				fill="none"
-				viewBox="0 0 24 24"
-				stroke="currentColor"
-			>
-				<path
-					strokeLinecap="round"
-					strokeLinejoin="round"
-					strokeWidth={2}
-					d="M12 4v16m8-8H4"
+			<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+				<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+					d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"
+				/>
+			</svg>
+		),
+	},
+	{
+		href: "/analytics",
+		label: "Analytics",
+		icon: (
+			<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+				<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+					d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
+				/>
+			</svg>
+		),
+	},
+];
+
+const BOTTOM_NAV = [
+	{
+		key: "support",
+		label: "Support",
+		href: "mailto:support@expensify.ai",
+		icon: (
+			<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+				<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+					d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
 				/>
 			</svg>
 		),
@@ -53,7 +63,7 @@ type SidebarProps = {
 export default function Sidebar({ mobileOpen = false, onCloseMobile }: SidebarProps) {
 	const pathname = usePathname();
 	const router = useRouter();
-	const { username, logout } = useAuth();
+	const { logout, username } = useAuth();
 
 	function closeMobileIfNeeded() {
 		onCloseMobile?.();
@@ -65,80 +75,97 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile }: SidebarPr
 		router.push("/login");
 	}
 
+	const displayName = username || "test";
+	const avatarInitial = displayName[0]?.toUpperCase() ?? "T";
+
 	const sidebarContent = (
 		<>
-			<div className="flex items-center gap-3 px-6 py-5 border-b border-slate-800">
-				<div className="w-8 h-8 rounded-xl bg-brand-500 flex items-center justify-center flex-shrink-0">
-					<svg
-						className="w-5 h-5 text-white"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-						strokeWidth={2}
-					>
-						<path
-							strokeLinecap="round"
-							strokeLinejoin="round"
-							d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-						/>
-					</svg>
-				</div>
-				<span className="text-white font-bold text-lg">
-					Expensify<span className="text-brand-400">.ai</span>
-				</span>
+			{/* Brand */}
+			<div className="px-6 py-6">
+				<h1 className="text-lg font-bold flex items-center gap-2" style={{ color: "var(--sidebar-brand-text)" }}>
+					<span className="w-6 h-6 rounded-md flex items-center justify-center bg-blue-500 text-white text-xs">
+						$
+					</span>
+					Expensify<span style={{ color: "var(--sidebar-brand)" }}>.ai</span>
+				</h1>
 			</div>
 
-			<nav className="flex-1 px-3 py-4 space-y-1">
+			{/* Main nav */}
+			<nav className="flex-1 px-3 py-2 space-y-1">
 				{NAV.map((item) => {
-					const active = pathname === item.href;
+					const active =
+						pathname === item.href ||
+						(item.href !== "/dashboard" && pathname.startsWith(item.href));
 					return (
 						<Link
 							key={item.href}
 							href={item.href}
 							onClick={closeMobileIfNeeded}
-							className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-								active
-									? "bg-brand-600 text-white"
-									: "text-slate-400 hover:text-white hover:bg-slate-800"
-							}`}
+							className="group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 hover:translate-x-0.5"
+							style={{
+								color: active ? "var(--sidebar-active-text)" : "var(--sidebar-inactive-text)",
+								backgroundColor: active ? "var(--sidebar-active-bg)" : "transparent",
+							}}
 						>
-							{item.icon}
-							{item.label}
+							{/* Active indicator */}
+							{active && (
+								<span
+									className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full"
+									style={{ backgroundColor: "var(--sidebar-active-text)" }}
+								/>
+							)}
+							<span className={active ? "" : "group-hover:opacity-80"}>
+								{item.icon}
+							</span>
+							<span className={active ? "" : "group-hover:opacity-80"}>
+								{item.label}
+							</span>
 						</Link>
 					);
 				})}
 			</nav>
 
-			<div className="px-3 py-4 border-t border-slate-800">
-				<div className="flex items-center gap-3 px-3 py-2 mb-1">
-					<div className="w-8 h-8 rounded-full bg-brand-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-						{username?.[0]?.toUpperCase() ?? "U"}
+			{/* Bottom section */}
+			<div className="px-3 py-4 flex flex-col gap-1" style={{ borderTop: "1px solid var(--border-primary)" }}>
+				{BOTTOM_NAV.map((item) => (
+					<a
+						key={item.key}
+						href={item.href}
+						className="group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 hover:translate-x-0.5"
+						style={{ color: "var(--sidebar-inactive-text)" }}
+						onClick={closeMobileIfNeeded}
+					>
+						<span className="group-hover:opacity-80">{item.icon}</span>
+						<span className="group-hover:opacity-80">{item.label}</span>
+					</a>
+				))}
+				
+				{/* User Profile */}
+				<div className="mt-2 mb-1 px-3 py-2 flex items-center gap-3">
+					<div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold bg-blue-500 text-white flex-shrink-0">
+						{avatarInitial}
 					</div>
-					<div className="min-w-0">
-						<p className="text-white text-sm font-medium truncate">
-							{username}
+					<div className="flex-1 min-w-0">
+						<p className="text-sm font-semibold truncate leading-tight" style={{ color: "var(--text-primary)" }}>
+							{displayName}
 						</p>
-						<p className="text-slate-500 text-xs">Free plan</p>
+						<p className="text-xs truncate leading-tight mt-0.5" style={{ color: "var(--text-muted)" }}>
+							Free plan
+						</p>
 					</div>
 				</div>
+
 				<button
 					onClick={handleLogout}
-					className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-all"
+					className="group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 hover:translate-x-0.5"
+					style={{ color: "var(--sidebar-inactive-text)" }}
 				>
-					<svg
-						className="w-5 h-5"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-					>
-						<path
-							strokeLinecap="round"
-							strokeLinejoin="round"
-							strokeWidth={2}
+					<svg className="w-5 h-5 group-hover:opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
 							d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
 						/>
 					</svg>
-					Sign out
+					<span className="group-hover:opacity-80">Sign out</span>
 				</button>
 			</div>
 		</>
@@ -146,10 +173,15 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile }: SidebarPr
 
 	return (
 		<>
-			<aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col bg-slate-900 md:flex">
+			{/* Desktop sidebar */}
+			<aside
+				className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col md:flex"
+				style={{ backgroundColor: "var(--sidebar-bg)", borderRight: "1px solid var(--border-primary)" }}
+			>
 				{sidebarContent}
 			</aside>
 
+			{/* Mobile sidebar */}
 			<div
 				className={`fixed inset-0 z-40 md:hidden ${
 					mobileOpen ? "" : "pointer-events-none"
@@ -159,35 +191,26 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile }: SidebarPr
 					type="button"
 					aria-label="Close menu"
 					onClick={closeMobileIfNeeded}
-					className={`absolute inset-0 bg-slate-900/50 transition-opacity ${
+					className={`absolute inset-0 transition-opacity ${
 						mobileOpen ? "opacity-100" : "opacity-0"
 					}`}
+					style={{ backgroundColor: "rgba(0, 0, 0, 0.6)" }}
 				/>
 
 				<aside
-					className={`relative h-full w-72 max-w-[85vw] bg-slate-900 flex flex-col transition-transform duration-200 ${
-						mobileOpen ? "translate-x-0" : "-translate-x-full"
-					}`}
+					className={`relative h-full w-72 max-w-[85vw] flex flex-col transition-transform duration-200`}
+					style={{ backgroundColor: "var(--sidebar-bg)" }}
 				>
-					<div className="flex justify-end p-3 border-b border-slate-800">
+					<div className="flex justify-end p-3" style={{ borderBottom: "1px solid var(--border-primary)" }}>
 						<button
 							type="button"
 							aria-label="Close menu"
 							onClick={closeMobileIfNeeded}
-							className="rounded-lg p-2 text-slate-300 hover:bg-slate-800 hover:text-white"
+							className="rounded-lg p-2 transition-colors"
+							style={{ color: "var(--text-secondary)" }}
 						>
-							<svg
-								className="h-5 w-5"
-								fill="none"
-								viewBox="0 0 24 24"
-								stroke="currentColor"
-							>
-								<path
-									strokeLinecap="round"
-									strokeLinejoin="round"
-									strokeWidth={2}
-									d="M6 18L18 6M6 6l12 12"
-								/>
+							<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+								<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
 							</svg>
 						</button>
 					</div>

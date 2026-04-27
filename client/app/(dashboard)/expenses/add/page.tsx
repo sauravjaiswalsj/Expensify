@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { expenseApi } from "@/lib/api";
-import { useAuth } from "@/lib/auth-context";
+import { useExpenseData } from "@/lib/expense-data-context";
 import {
+  CURRENCIES,
   EXPENSE_CATEGORIES,
   PAYMENT_TYPES,
-  CURRENCIES,
   type Currency,
 } from "@/types";
 
@@ -20,216 +21,364 @@ interface FormState {
   date: string;
 }
 
+type FormErrors = Partial<Record<keyof FormState, string>>;
+
+const TAGS = ["#MONTHLY_REVIEW", "#TEAM_SPEND"];
+const DRAFT_STORAGE_KEY = "add-expense-draft";
+
 function today() {
   return new Date().toISOString().split("T")[0];
 }
 
-export default function AddExpensePage() {
-  const router = useRouter();
-  const { username } = useAuth();
-
-  const [form, setForm] = useState<FormState>({
+function getInitialForm(): FormState {
+  return {
     amount: "",
     currency: "INR",
     category: "",
     description: "",
     paymentType: "",
     date: today(),
-  });
+  };
+}
 
-  const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
-  const [apiError, setApiError] = useState("");
-  const [success, setSuccess] = useState(false);
+export default function AddExpensePage() {
+  const router = useRouter();
+  const { refresh: refreshExpenses } = useExpenseData();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const [form, setForm] = useState<FormState>(getInitialForm);
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [apiMessage, setApiMessage] = useState("");
+  const [apiMessageTone, setApiMessageTone] = useState<"error" | "success" | "info">("info");
   const [loading, setLoading] = useState(false);
+  const [tags, setTags] = useState<string[]>(TAGS);
+  const [receiptName, setReceiptName] = useState("");
+  const [tagInput, setTagInput] = useState("");
+
+  useEffect(() => {
+    try {
+      const savedDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (!savedDraft) return;
+      const parsed = JSON.parse(savedDraft) as Partial<FormState> & { tags?: string[] };
+      setForm((current) => ({
+        ...current,
+        amount: parsed.amount ?? current.amount,
+        currency: parsed.currency ?? current.currency,
+        category: parsed.category ?? current.category,
+        description: parsed.description ?? current.description,
+        paymentType: parsed.paymentType ?? current.paymentType,
+        date: parsed.date ?? current.date,
+      }));
+      if (Array.isArray(parsed.tags) && parsed.tags.length > 0) {
+        setTags(parsed.tags);
+      }
+    } catch {
+      // ignore bad draft payloads
+    }
+  }, []);
 
   function update<K extends keyof FormState>(field: K, value: FormState[K]) {
-    setForm((f) => ({ ...f, [field]: value }));
-    setErrors((e) => ({ ...e, [field]: undefined }));
+    setForm((current) => ({ ...current, [field]: value }));
+    setErrors((current) => ({ ...current, [field]: undefined }));
   }
 
-  function validate(): boolean {
-    const newErrors: Partial<Record<keyof FormState, string>> = {};
-    const amt = parseFloat(form.amount);
+  function setBanner(message: string, tone: "error" | "success" | "info") {
+    setApiMessage(message);
+    setApiMessageTone(tone);
+  }
 
-    if (!form.amount || isNaN(amt) || amt <= 0) {
-      newErrors.amount = "Amount must be greater than 0";
+  function validate() {
+    const nextErrors: FormErrors = {};
+    const amount = parseFloat(form.amount);
+
+    if (!form.amount || Number.isNaN(amount) || amount <= 0) {
+      nextErrors.amount = "Enter an amount greater than 0.";
     }
-    if (!form.category) newErrors.category = "Please select a category";
-    if (!form.paymentType) newErrors.paymentType = "Please select a payment type";
+    if (!form.category) {
+      nextErrors.category = "Choose a category.";
+    }
+    if (!form.paymentType) {
+      nextErrors.paymentType = "Choose a payment method.";
+    }
+    if (!form.date) {
+      nextErrors.date = "Pick the expense date.";
+    }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
   }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    setApiError("");
-    setSuccess(false);
+    setApiMessage("");
+
     if (!validate()) return;
     setLoading(true);
 
     try {
       await expenseApi.add({
-        username: username ?? undefined,
         amount: parseFloat(form.amount),
         currency: form.currency,
         category: form.category,
-        description: form.description,
+        description: form.description.trim(),
         paymentType: form.paymentType,
-        date: form.date ? new Date(form.date).toISOString() : undefined,
+        date: form.date ? new Date(`${form.date}T12:00:00`).toISOString() : undefined,
       });
-      setSuccess(true);
-      setForm({
-        amount: "",
-        currency: "INR",
-        category: "",
-        description: "",
-        paymentType: "",
-        date: today(),
-      });
+
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
+      await refreshExpenses();
+      setForm(getInitialForm());
+      setReceiptName("");
+      setTagInput("");
+      setBanner("Expense recorded successfully.", "success");
+      router.push("/dashboard");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to add expense";
       if (msg.includes("401")) {
-        setApiError("Your session has expired. Please sign in again.");
+        setBanner("Your session has expired. Please sign in again.", "error");
       } else if (msg.includes("400")) {
-        setApiError("Invalid expense data. Check the amount is greater than 0.");
+        setBanner("The expense payload is invalid. Check the required fields and amount.", "error");
       } else {
-        setApiError(msg);
+        setBanner(msg, "error");
       }
     } finally {
       setLoading(false);
     }
   }
 
-  const selectedCurrency = CURRENCIES.find((c) => c.code === form.currency);
+  function handleSaveDraft() {
+    try {
+      localStorage.setItem(
+        DRAFT_STORAGE_KEY,
+        JSON.stringify({
+          ...form,
+          tags,
+          savedAt: new Date().toISOString(),
+        })
+      );
+      setBanner("Draft saved locally on this device.", "info");
+    } catch {
+      setBanner("Unable to save the draft on this device.", "error");
+    }
+  }
+
+  function handleAddTag() {
+    const trimmed = tagInput.trim();
+    if (!trimmed) return;
+    const normalized = trimmed.startsWith("#") ? trimmed : `#${trimmed}`;
+    if (!tags.includes(normalized)) {
+      setTags((current) => [...current, normalized]);
+    }
+    setTagInput("");
+  }
+
+  const selectedCurrency = CURRENCIES.find((currency) => currency.code === form.currency);
+  const bannerStyles =
+    apiMessageTone === "error"
+      ? {
+          backgroundColor: "color-mix(in srgb, var(--accent-red) 12%, var(--bg-secondary))",
+          borderColor: "color-mix(in srgb, var(--accent-red) 22%, var(--border-primary))",
+          color: "var(--text-primary)",
+        }
+      : apiMessageTone === "success"
+        ? {
+            backgroundColor: "color-mix(in srgb, var(--accent-green) 12%, var(--bg-secondary))",
+            borderColor: "color-mix(in srgb, var(--accent-green) 22%, var(--border-primary))",
+            color: "var(--text-primary)",
+          }
+        : {
+            backgroundColor: "color-mix(in srgb, var(--accent-cyan) 10%, var(--bg-secondary))",
+            borderColor: "color-mix(in srgb, var(--accent-cyan) 20%, var(--border-primary))",
+            color: "var(--text-primary)",
+          };
 
   return (
-    <div>
-      {/* Header */}
-      <div className="mb-8 flex items-center gap-4">
-        <button
-          onClick={() => router.back()}
-          className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors"
-        >
-          <svg className="w-4 h-4 text-slate-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Add Expense</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Record a new transaction</p>
-        </div>
+    <div className="animate-fade-in-up space-y-6 pb-12">
+      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em]">
+        <Link href="/dashboard" style={{ color: "var(--text-muted)" }}>
+          Dashboard
+        </Link>
+        <span style={{ color: "var(--text-muted)" }}>•</span>
+        <span style={{ color: "var(--accent-cyan)" }}>Add expense</span>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Form */}
-        <div className="lg:col-span-2">
-          <div className="card p-6">
-            {apiError && (
-              <div className="mb-5 px-4 py-3 rounded-lg bg-red-50 border border-red-100 text-red-600 text-sm">
-                {apiError}
+      <section
+        className="surface-panel overflow-hidden p-0"
+        style={{
+          background:
+            "linear-gradient(140deg, color-mix(in srgb, var(--bg-secondary) 96%, transparent), color-mix(in srgb, var(--bg-surface) 88%, transparent))",
+        }}
+      >
+        <div className="grid gap-6 lg:grid-cols-[1.45fr_0.9fr]">
+          <div className="p-6 sm:p-8">
+            <div className="space-y-4">
+              <div
+                className="inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em]"
+                style={{
+                  borderColor: "color-mix(in srgb, var(--accent-cyan) 28%, var(--border-primary))",
+                  color: "var(--accent-cyan)",
+                  backgroundColor: "color-mix(in srgb, var(--accent-cyan) 10%, transparent)",
+                }}
+              >
+                Expense capture
               </div>
-            )}
-            {success && (
-              <div className="mb-5 px-4 py-3 rounded-lg bg-green-50 border border-green-100 text-green-700 text-sm flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                Expense recorded successfully!
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight sm:text-4xl" style={{ color: "var(--text-primary)" }}>
+                  Record a new expense
+                </h1>
+                <p className="mt-2 max-w-2xl text-sm sm:text-base" style={{ color: "var(--text-secondary)" }}>
+                  Log the essentials quickly, keep the data clean, and push it straight into your dashboard without
+                  breaking the flow.
+                </p>
               </div>
-            )}
+            </div>
+          </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
-              {/* Amount + Currency */}
+          <div
+            className="flex flex-col justify-between gap-4 border-t p-6 sm:p-8 lg:border-l lg:border-t-0"
+            style={{ borderColor: "var(--border-primary)" }}
+          >
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: "var(--text-muted)" }}>
+                Posting rules
+              </p>
+              <div className="mt-4 space-y-3">
+                {[
+                  "Amount must be greater than zero.",
+                  "Category and payment method are required.",
+                  "The authenticated user is now attached server-side when posting.",
+                ].map((item) => (
+                  <div
+                    key={item}
+                    className="rounded-2xl border px-4 py-3 text-sm"
+                    style={{
+                      borderColor: "var(--border-primary)",
+                      backgroundColor: "color-mix(in srgb, var(--bg-surface) 76%, transparent)",
+                      color: "var(--text-secondary)",
+                    }}
+                  >
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+              <button type="button" onClick={handleSaveDraft} className="btn-secondary">
+                Save draft
+              </button>
+              <button type="submit" form="add-expense-form" className="btn-primary px-6" disabled={loading}>
+                {loading ? "Posting..." : "Post expense"}
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {apiMessage && (
+        <div className="rounded-2xl border p-4 text-sm" style={bannerStyles}>
+          {apiMessage}
+        </div>
+      )}
+
+      <form id="add-expense-form" onSubmit={handleSubmit} className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
+        <div className="space-y-6">
+          <section className="surface-panel p-6 sm:p-7">
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+                Transaction details
+              </h2>
+              <p className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
+                Fill in the core fields for the expense you want to track.
+              </p>
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
               <div>
                 <label className="label">Amount</label>
-                <div className="flex gap-2">
-                  <select
-                    className="input-field w-32 flex-shrink-0"
-                    value={form.currency}
-                    onChange={(e) => update("currency", e.target.value as Currency)}
+                <div className="relative">
+                  <span
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-semibold"
+                    style={{ color: "var(--text-muted)" }}
                   >
-                    {CURRENCIES.map((c) => (
-                      <option key={c.code} value={c.code}>
-                        {c.symbol} {c.code}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="flex-1 relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">
-                      {selectedCurrency?.symbol}
-                    </span>
-                    <input
-                      className="input-field pl-8"
-                      type="number"
-                      placeholder="0.00"
-                      min="0.01"
-                      step="0.01"
-                      value={form.amount}
-                      onChange={(e) => update("amount", e.target.value)}
-                    />
-                  </div>
+                    {selectedCurrency?.symbol}
+                  </span>
+                  <input
+                    className="input-field h-16 pl-11 text-2xl font-bold"
+                    type="number"
+                    placeholder="0.00"
+                    min="0.01"
+                    step="0.01"
+                    value={form.amount}
+                    onChange={(e) => update("amount", e.target.value)}
+                  />
                 </div>
                 {errors.amount && <p className="error-msg">{errors.amount}</p>}
               </div>
 
-              {/* Category */}
+              <div>
+                <label className="label">Currency</label>
+                <select
+                  className="input-field h-16 text-base font-medium"
+                  value={form.currency}
+                  onChange={(e) => update("currency", e.target.value as Currency)}
+                >
+                  {CURRENCIES.map((currency) => (
+                    <option
+                      key={currency.code}
+                      value={currency.code}
+                      style={{ backgroundColor: "var(--bg-secondary)", color: "var(--text-primary)" }}
+                    >
+                      {currency.code} - {currency.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-4 md:grid-cols-3">
               <div>
                 <label className="label">Category</label>
-                <select
-                  className="input-field"
-                  value={form.category}
-                  onChange={(e) => update("category", e.target.value)}
-                >
-                  <option value="">Select a category</option>
-                  {EXPENSE_CATEGORIES.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
+                <select className="input-field" value={form.category} onChange={(e) => update("category", e.target.value)}>
+                  <option value="" style={{ backgroundColor: "var(--bg-secondary)", color: "var(--text-muted)" }}>
+                    Select category
+                  </option>
+                  {EXPENSE_CATEGORIES.map((category) => (
+                    <option
+                      key={category}
+                      value={category}
+                      style={{ backgroundColor: "var(--bg-secondary)", color: "var(--text-primary)" }}
+                    >
+                      {category}
                     </option>
                   ))}
                 </select>
                 {errors.category && <p className="error-msg">{errors.category}</p>}
               </div>
 
-              {/* Payment Type */}
               <div>
                 <label className="label">Payment method</label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {PAYMENT_TYPES.map((type) => (
-                    <button
-                      key={type}
-                      type="button"
-                      onClick={() => update("paymentType", type)}
-                      className={`py-2 px-3 rounded-lg text-xs font-medium border transition-all ${
-                        form.paymentType === type
-                          ? "bg-brand-600 border-brand-600 text-white"
-                          : "bg-white border-slate-200 text-slate-600 hover:border-brand-400 hover:text-brand-600"
-                      }`}
+                <select
+                  className="input-field"
+                  value={form.paymentType}
+                  onChange={(e) => update("paymentType", e.target.value)}
+                >
+                  <option value="" style={{ backgroundColor: "var(--bg-secondary)", color: "var(--text-muted)" }}>
+                    Select method
+                  </option>
+                  {PAYMENT_TYPES.map((paymentType) => (
+                    <option
+                      key={paymentType}
+                      value={paymentType}
+                      style={{ backgroundColor: "var(--bg-secondary)", color: "var(--text-primary)" }}
                     >
-                      {type}
-                    </button>
+                      {paymentType}
+                    </option>
                   ))}
-                </div>
-                {errors.paymentType && (
-                  <p className="error-msg">{errors.paymentType}</p>
-                )}
+                </select>
+                {errors.paymentType && <p className="error-msg">{errors.paymentType}</p>}
               </div>
 
-              {/* Description */}
-              <div>
-                <label className="label">
-                  Description{" "}
-                  <span className="text-slate-400 font-normal">(optional)</span>
-                </label>
-                <textarea
-                  className="input-field resize-none h-20"
-                  placeholder="e.g. Lunch at Cafe Coffee Day"
-                  value={form.description}
-                  onChange={(e) => update("description", e.target.value)}
-                />
-              </div>
-
-              {/* Date */}
               <div>
                 <label className="label">Date</label>
                 <input
@@ -239,93 +388,202 @@ export default function AddExpensePage() {
                   onChange={(e) => update("date", e.target.value)}
                   max={today()}
                 />
+                {errors.date && <p className="error-msg">{errors.date}</p>}
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <label className="label">Description</label>
+              <textarea
+                className="input-field min-h-[140px] resize-none"
+                placeholder="Add useful context for this transaction..."
+                value={form.description}
+                onChange={(e) => update("description", e.target.value)}
+              />
+            </div>
+          </section>
+
+          <section className="surface-panel p-6 sm:p-7">
+            <div className="mb-5">
+              <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+                Labels and attachments
+              </h2>
+              <p className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
+                Optional metadata for receipts, reviews, and internal context.
+              </p>
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+              <div>
+                <label className="label">Tags</label>
+                <div className="mb-3 flex flex-wrap gap-2">
+                  {tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold"
+                      style={{
+                        backgroundColor: "color-mix(in srgb, var(--accent-cyan) 12%, transparent)",
+                        color: "var(--accent-cyan)",
+                      }}
+                    >
+                      {tag}
+                      <button type="button" onClick={() => setTags((current) => current.filter((item) => item !== tag))}>
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    className="input-field h-10 text-sm"
+                    placeholder="new-tag"
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddTag();
+                      }
+                    }}
+                  />
+                  <button type="button" className="btn-secondary whitespace-nowrap px-4 py-2" onClick={handleAddTag}>
+                    Add tag
+                  </button>
+                </div>
               </div>
 
-              <div className="flex gap-3 pt-1">
+              <div>
+                <label className="label">Attach receipt</label>
                 <button
                   type="button"
-                  className="btn-secondary"
-                  onClick={() => router.back()}
-                  disabled={loading}
+                  className="flex min-h-[162px] w-full flex-col items-center justify-center rounded-2xl border border-dashed px-6 text-center transition"
+                  style={{
+                    borderColor: "var(--border-secondary)",
+                    backgroundColor: "color-mix(in srgb, var(--bg-surface) 72%, transparent)",
+                  }}
+                  onClick={() => fileInputRef.current?.click()}
                 >
-                  Cancel
+                  <svg className="mb-3 h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: "var(--accent-teal)" }}>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.6}
+                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                    />
+                  </svg>
+                  <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                    Click to upload
+                  </p>
+                  <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>
+                    PDF, PNG, JPG up to 10MB
+                  </p>
+                  {receiptName && (
+                    <p className="mt-3 text-xs font-semibold" style={{ color: "var(--accent-cyan)" }}>
+                      Selected: {receiptName}
+                    </p>
+                  )}
                 </button>
-                <button type="submit" className="btn-primary" disabled={loading}>
-                  {loading ? "Saving…" : "Save expense"}
-                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  accept=".pdf,.png,.jpg,.jpeg"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    setReceiptName(file?.name ?? "");
+                  }}
+                />
               </div>
-            </form>
-          </div>
-        </div>
-
-        {/* Preview Card */}
-        <div className="lg:col-span-1">
-          <div className="card p-5 sticky top-8">
-            <h3 className="text-sm font-semibold text-slate-700 mb-4">Preview</h3>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span className="text-xs text-slate-500">Amount</span>
-                <span className="text-base font-bold text-slate-900">
-                  {selectedCurrency?.symbol}
-                  {form.amount ? parseFloat(form.amount).toFixed(2) : "0.00"}{" "}
-                  <span className="text-xs font-normal text-slate-400">
-                    {form.currency}
-                  </span>
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-xs text-slate-500">Category</span>
-                <span className="text-xs font-medium text-slate-700">
-                  {form.category || "—"}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-xs text-slate-500">Payment</span>
-                <span className="text-xs font-medium text-slate-700">
-                  {form.paymentType || "—"}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-xs text-slate-500">Date</span>
-                <span className="text-xs font-medium text-slate-700">
-                  {form.date
-                    ? new Date(form.date).toLocaleDateString("en-IN", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })
-                    : "—"}
-                </span>
-              </div>
-              {form.description && (
-                <div className="pt-2 border-t border-slate-100">
-                  <span className="text-xs text-slate-500 block mb-1">Note</span>
-                  <p className="text-xs text-slate-700">{form.description}</p>
-                </div>
-              )}
             </div>
-          </div>
-
-          {/* Tips */}
-          <div className="mt-4 p-4 rounded-xl bg-brand-50 border border-brand-100">
-            <p className="text-xs font-semibold text-brand-700 mb-2">Tips</p>
-            <ul className="space-y-1.5">
-              <li className="flex items-start gap-1.5 text-xs text-brand-600">
-                <span className="mt-0.5">•</span>
-                Track expenses daily for accurate insights
-              </li>
-              <li className="flex items-start gap-1.5 text-xs text-brand-600">
-                <span className="mt-0.5">•</span>
-                Use descriptive notes to remember context
-              </li>
-              <li className="flex items-start gap-1.5 text-xs text-brand-600">
-                <span className="mt-0.5">•</span>
-                Choose the right category for better analytics
-              </li>
-            </ul>
-          </div>
+          </section>
         </div>
-      </div>
+
+        <div className="space-y-6">
+          <section className="surface-panel p-6">
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+                Live summary
+              </h2>
+              <p className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
+                Quick preview before you post.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div
+                className="rounded-2xl border p-4"
+                style={{
+                  borderColor: "var(--border-primary)",
+                  backgroundColor: "color-mix(in srgb, var(--bg-surface) 76%, transparent)",
+                }}
+              >
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em]" style={{ color: "var(--text-muted)" }}>
+                  Amount
+                </p>
+                <p className="mt-2 text-3xl font-bold" style={{ color: "var(--text-primary)" }}>
+                  {form.amount ? `${selectedCurrency?.symbol ?? ""}${form.amount}` : `${selectedCurrency?.symbol ?? ""}0.00`}
+                </p>
+              </div>
+
+              {[
+                { label: "Category", value: form.category || "Not selected" },
+                { label: "Payment method", value: form.paymentType || "Not selected" },
+                { label: "Date", value: form.date || "Not selected" },
+              ].map((item) => (
+                <div key={item.label} className="flex items-center justify-between gap-3 text-sm">
+                  <span style={{ color: "var(--text-muted)" }}>{item.label}</span>
+                  <span className="font-semibold text-right" style={{ color: "var(--text-primary)" }}>
+                    {item.value}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section className="surface-panel p-6">
+            <div className="mb-4 flex items-start gap-3">
+              <div
+                className="flex h-10 w-10 items-center justify-center rounded-xl"
+                style={{ backgroundColor: "color-mix(in srgb, var(--accent-cyan) 15%, transparent)" }}
+              >
+                <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24" style={{ color: "var(--accent-cyan)" }}>
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+                  Workflow notes
+                </h2>
+                <p className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
+                  Clean captures make the dashboard and analytics a lot more useful later.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-3 text-sm" style={{ color: "var(--text-secondary)" }}>
+              <div
+                className="rounded-2xl border p-4"
+                style={{
+                  borderColor: "var(--border-primary)",
+                  backgroundColor: "color-mix(in srgb, var(--bg-surface) 74%, transparent)",
+                }}
+              >
+                Use specific descriptions for easier recall during monthly reviews.
+              </div>
+              <div
+                className="rounded-2xl border p-4"
+                style={{
+                  borderColor: "var(--border-primary)",
+                  backgroundColor: "color-mix(in srgb, var(--bg-surface) 74%, transparent)",
+                }}
+              >
+                Receipt uploads are visual only right now, but the page keeps the affordance ready.
+              </div>
+            </div>
+          </section>
+        </div>
+      </form>
     </div>
   );
 }
