@@ -13,6 +13,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
+import org.springframework.http.HttpMethod;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -24,6 +25,18 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     private JwtService jwtService;
     @Autowired
     private UserDetailedServiceImpl userDetailedService;
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getServletPath();
+        return HttpMethod.OPTIONS.matches(request.getMethod())
+                || path.equals("/auth")
+                || path.startsWith("/auth/")
+                || path.startsWith("/swagger-ui/")
+                || path.equals("/swagger-ui.html")
+                || path.startsWith("/v3/api-docs/")
+                || path.startsWith("/h2-console/");
+    }
 
     /**
      * @param request
