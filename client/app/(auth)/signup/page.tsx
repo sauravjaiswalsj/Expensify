@@ -110,7 +110,7 @@ export default function SignupPage() {
 
   return (
     <>
-      <h2 className="text-xl font-bold text-slate-900 mb-1">Create account</h2>
+      <h2 className="text-[22px] font-bold text-slate-900 mb-1">Create account</h2>
       <p className="text-sm text-slate-500 mb-6">Start tracking your expenses today</p>
 
       {apiError && (
@@ -122,9 +122,9 @@ export default function SignupPage() {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="label">First name</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">First name</label>
             <input
-              className="input-field"
+              className="w-full px-4 py-2.5 rounded-lg text-sm bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-colors"
               type="text"
               placeholder="John"
               value={form.firstName}
@@ -134,9 +134,9 @@ export default function SignupPage() {
             {errors.firstName && <p className="error-msg">{errors.firstName}</p>}
           </div>
           <div>
-            <label className="label">Last name</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Last name</label>
             <input
-              className="input-field"
+              className="w-full px-4 py-2.5 rounded-lg text-sm bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-colors"
               type="text"
               placeholder="Doe"
               value={form.lastName}
@@ -148,9 +148,9 @@ export default function SignupPage() {
         </div>
 
         <div>
-          <label className="label">Username</label>
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Username</label>
           <input
-            className="input-field"
+            className="w-full px-4 py-2.5 rounded-lg text-sm bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-colors"
             type="text"
             placeholder="john_doe"
             value={form.username}
@@ -161,9 +161,9 @@ export default function SignupPage() {
         </div>
 
         <div>
-          <label className="label">Email</label>
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Email</label>
           <input
-            className="input-field"
+            className="w-full px-4 py-2.5 rounded-lg text-sm bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-colors"
             type="email"
             placeholder="john@example.com"
             value={form.email}
@@ -174,10 +174,10 @@ export default function SignupPage() {
         </div>
 
         <div>
-          <label className="label">Password</label>
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Password</label>
           <div className="relative">
             <input
-              className="input-field pr-10"
+              className="w-full pl-4 pr-10 py-2.5 rounded-lg text-sm bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-colors"
               type={showPassword ? "text" : "password"}
               placeholder="••••••••"
               value={form.password}
@@ -209,9 +209,9 @@ export default function SignupPage() {
         </div>
 
         <div>
-          <label className="label">Confirm password</label>
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Confirm password</label>
           <input
-            className="input-field"
+            className="w-full px-4 py-2.5 rounded-lg text-sm bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-colors"
             type={showPassword ? "text" : "password"}
             placeholder="••••••••"
             value={form.confirmPassword}
@@ -223,14 +223,14 @@ export default function SignupPage() {
           )}
         </div>
 
-        <button type="submit" className="btn-primary" disabled={loading}>
+        <button type="submit" className="w-full bg-[#0284c7] hover:bg-[#0369a1] text-white py-2.5 px-4 rounded-lg text-sm font-medium transition-colors" disabled={loading}>
           {loading ? "Creating account…" : "Create account"}
         </button>
       </form>
 
       <p className="mt-6 text-center text-sm text-slate-500">
         Already have an account?{" "}
-        <Link href="/login" className="text-brand-600 hover:text-brand-700 font-semibold">
+        <Link href="/login" className="text-sky-600 hover:text-sky-700 font-bold">
           Sign in
         </Link>
       </p>

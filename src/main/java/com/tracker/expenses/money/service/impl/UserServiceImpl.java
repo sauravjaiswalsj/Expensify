@@ -48,15 +48,14 @@ public class UserServiceImpl implements UserService {
     private void isUserValid(User user){
         String username = user.getUsername().toLowerCase();
         Validation.isUsernameValid(username);
-        if(userRepository.findByUsername(username)!=null){
+        if(userRepository.findByUsernameIgnoreCase(username)!=null){
             throw new UserAlreadyExistsException("User already exists "+username);
         }
         Validation.isEmailValid(user.getEmail());
     }
 
     public User findByUsername(String username) {
-        username = username.toLowerCase();
-        return  userRepository.findByUsername(username);
+        return userRepository.findByUsernameIgnoreCase(username);
     }
 
     public User findByEmail(String email) {
@@ -73,6 +72,10 @@ public class UserServiceImpl implements UserService {
                 userDTO.getLastName(),
                 userDTO.getEmail()
         );
+
+        // Keep identity fields normalized across signup/login lookups.
+        user.setUsername(user.getUsername().toLowerCase());
+        user.setEmail(user.getEmail().toLowerCase());
 
         isUserValid(user);
         user.setPassword(passwordEncoder.encode(user.getPassword()));
@@ -205,22 +208,42 @@ public class UserServiceImpl implements UserService {
         return new Response<>(new ResponseHeader(HttpStatus.OK, "Verification code resent successfully"));
     }
 
+    private boolean isBcryptHash(String passwordHash) {
+        return passwordHash != null && passwordHash.matches("^\\$2[aby]?\\$.{56}$");
+    }
 
     public UserDTO authenticateUser(LoginDTO loginDTO) {
         try{
-            User user = findByUsername(loginDTO.getUsername());
+            String normalizedUsername = loginDTO.getUsername().toLowerCase();
+            User user = findByUsername(normalizedUsername);
             if (user == null) {
                 throw new UsernameNotFoundException("User not found");
             }
 
-            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
-                    loginDTO.getUsername(), loginDTO.getPassword()));
+            log.debug("Authenticating user: {}, storedPasswordIsBcrypt: {}",
+                    normalizedUsername, isBcryptHash(user.getPassword()));
+
+            // Handle legacy plain-text passwords that were never BCrypt-encoded.
+            // If the stored password is NOT a BCrypt hash, compare it directly and
+            // re-encode it on success so future logins go through the normal path.
+            if (!isBcryptHash(user.getPassword())) {
+                log.warn("User {} has a plain-text password — migrating to BCrypt", normalizedUsername);
+                if (!user.getPassword().equals(loginDTO.getPassword())) {
+                    throw new BadCredentialsException("Invalid credentials.");
+                }
+                // Migrate: encode and persist
+                user.setPassword(passwordEncoder.encode(loginDTO.getPassword()));
+                userRepository.save(user);
+            } else {
+                authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
+                        normalizedUsername, loginDTO.getPassword()));
+            }
 
             if (!user.isAccountVerified()) {
                 throw new UserNotVerifiedException("User not verified");
             }
 
-            log.info("User {} authenticated successfully", loginDTO.getUsername());
+            log.info("User {} authenticated successfully", normalizedUsername);
 
             return new UserDTO(
                     user.getUsername(),

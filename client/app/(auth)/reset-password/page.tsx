@@ -62,7 +62,7 @@ function ResetForm() {
 
   return (
     <>
-      <h2 className="text-xl font-bold text-slate-900 mb-1">Reset password</h2>
+      <h2 className="text-[22px] font-bold text-slate-900 mb-1">Reset password</h2>
       <p className="text-sm text-slate-500 mb-6">
         Enter your reset code and choose a new password
       </p>
@@ -80,9 +80,9 @@ function ResetForm() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="label">Username</label>
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Username</label>
           <input
-            className="input-field"
+            className="w-full px-4 py-2.5 rounded-lg text-sm bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-colors"
             type="text"
             placeholder="your_username"
             value={username}
@@ -92,9 +92,9 @@ function ResetForm() {
         </div>
 
         <div>
-          <label className="label">Reset code</label>
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Reset code</label>
           <input
-            className="input-field text-center tracking-[0.5em] text-lg font-mono"
+            className="w-full px-4 py-2.5 rounded-lg bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-colors text-center tracking-[0.5em] text-lg font-mono"
             type="text"
             placeholder="000000"
             value={code}
@@ -105,10 +105,10 @@ function ResetForm() {
         </div>
 
         <div>
-          <label className="label">New password</label>
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">New password</label>
           <div className="relative">
             <input
-              className="input-field pr-10"
+              className="w-full pl-4 pr-10 py-2.5 rounded-lg text-sm bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-colors"
               type={showPassword ? "text" : "password"}
               placeholder="••••••••"
               value={password}
@@ -134,9 +134,9 @@ function ResetForm() {
         </div>
 
         <div>
-          <label className="label">Confirm new password</label>
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Confirm new password</label>
           <input
-            className="input-field"
+            className="w-full px-4 py-2.5 rounded-lg text-sm bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-colors"
             type={showPassword ? "text" : "password"}
             placeholder="••••••••"
             value={confirmPassword}
@@ -146,14 +146,14 @@ function ResetForm() {
           />
         </div>
 
-        <button type="submit" className="btn-primary" disabled={loading}>
+        <button type="submit" className="w-full bg-[#0284c7] hover:bg-[#0369a1] text-white py-2.5 px-4 rounded-lg text-sm font-medium transition-colors" disabled={loading}>
           {loading ? "Resetting…" : "Reset password"}
         </button>
       </form>
 
       <p className="mt-6 text-center text-sm text-slate-500">
         Back to{" "}
-        <Link href="/login" className="text-brand-600 hover:text-brand-700 font-semibold">
+        <Link href="/login" className="text-sky-600 hover:text-sky-700 font-bold">
           Sign in
         </Link>
       </p>

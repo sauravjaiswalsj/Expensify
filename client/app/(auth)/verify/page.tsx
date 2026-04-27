@@ -74,7 +74,7 @@ function VerifyForm() {
 
   return (
     <>
-      <h2 className="text-xl font-bold text-slate-900 mb-1">Verify your email</h2>
+      <h2 className="text-[22px] font-bold text-slate-900 mb-1">Verify your email</h2>
       <p className="text-sm text-slate-500 mb-6">
         Enter the 6-digit code sent to your email address
       </p>
@@ -92,9 +92,9 @@ function VerifyForm() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="label">Username</label>
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Username</label>
           <input
-            className="input-field"
+            className="w-full px-4 py-2.5 rounded-lg text-sm bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-colors"
             type="text"
             placeholder="your_username"
             value={username}
@@ -104,9 +104,9 @@ function VerifyForm() {
         </div>
 
         <div>
-          <label className="label">Verification code</label>
+          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Verification code</label>
           <input
-            className="input-field text-center tracking-[0.5em] text-lg font-mono"
+            className="w-full px-4 py-2.5 rounded-lg bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-colors text-center tracking-[0.5em] text-lg font-mono"
             type="text"
             placeholder="000000"
             value={code}
@@ -116,7 +116,7 @@ function VerifyForm() {
           />
         </div>
 
-        <button type="submit" className="btn-primary" disabled={loading}>
+        <button type="submit" className="w-full bg-[#0284c7] hover:bg-[#0369a1] text-white py-2.5 px-4 rounded-lg text-sm font-medium transition-colors" disabled={loading}>
           {loading ? "Verifying…" : "Verify email"}
         </button>
       </form>
@@ -125,7 +125,7 @@ function VerifyForm() {
         <button
           onClick={handleResend}
           disabled={resending}
-          className="text-sm text-brand-600 hover:text-brand-700 font-medium disabled:opacity-50"
+          className="text-sm text-sky-600 hover:text-sky-700 font-medium disabled:opacity-50"
         >
           {resending ? "Sending…" : "Resend verification code"}
         </button>
@@ -133,7 +133,7 @@ function VerifyForm() {
 
       <p className="mt-4 text-center text-sm text-slate-500">
         Back to{" "}
-        <Link href="/login" className="text-brand-600 hover:text-brand-700 font-semibold">
+        <Link href="/login" className="text-sky-600 hover:text-sky-700 font-bold">
           Sign in
         </Link>
       </p>

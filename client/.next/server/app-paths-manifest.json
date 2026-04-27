@@ -1,1 +1,7 @@
-{}
+{
+  "/(auth)/forgot-password/page": "app/(auth)/forgot-password/page.js",
+  "/(dashboard)/expenses/add/page": "app/(dashboard)/expenses/add/page.js",
+  "/(auth)/verify/page": "app/(auth)/verify/page.js",
+  "/(auth)/signup/page": "app/(auth)/signup/page.js",
+  "/(auth)/login/page": "app/(auth)/login/page.js"
+}

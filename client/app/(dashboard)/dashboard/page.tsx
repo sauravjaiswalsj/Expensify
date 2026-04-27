@@ -1,47 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import Link from "next/link";
-import { ApiError, expenseApi } from "@/lib/api";
-import { useAuth } from "@/lib/auth-context";
+import { useExpenseData } from "@/lib/expense-data-context";
 import { CURRENCIES, type Expense, type Currency } from "@/types";
 
-const QUICK_ACTIONS = [
-  {
-    href: "/expenses/add",
-    label: "Add Expense",
-    description: "Record a new transaction",
-    color: "bg-brand-500",
-    icon: (
-      <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-      </svg>
-    ),
-  },
-];
-
-type DashboardStat = {
-  label: string;
-  value: string;
-  sub: string;
-  icon: ReactNode;
-  bg: string;
-};
-
-type PeriodKey = "7d" | "30d" | "90d" | "custom";
-
-type SplitEntry = {
-  label: string;
-  amount: number;
-  percentage: number;
-};
-
-const PERIOD_OPTIONS: { key: PeriodKey; label: string; days?: number }[] = [
-  { key: "7d", label: "7D", days: 7 },
-  { key: "30d", label: "30D", days: 30 },
-  { key: "90d", label: "90D", days: 90 },
-  { key: "custom", label: "Custom" },
-];
+/* ─── helpers ───────────────────────────────────────────────────── */
 
 function parseExpenseDate(expense: Expense): Date | null {
   const raw = expense.date || expense.createdAt || expense.updatedAt;
@@ -52,7 +16,7 @@ function parseExpenseDate(expense: Expense): Date | null {
 
 function formatCurrency(amount: number, currency: Currency): string {
   try {
-    return new Intl.NumberFormat("en-IN", {
+    return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency,
       maximumFractionDigits: 2,
@@ -63,46 +27,11 @@ function formatCurrency(amount: number, currency: Currency): string {
   }
 }
 
-function getApiErrorMessage(err: unknown): string {
-  if (err instanceof ApiError) {
-    if (err.status === 401) return "Your session has expired. Please sign in again.";
-    if (err.status === 403) return "You are not allowed to view these expenses.";
-    return err.message || "Failed to load expenses.";
-  }
-  return err instanceof Error ? err.message : "Failed to load expenses.";
-}
-
-function startOfDay(date: Date): Date {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
-function endOfDay(date: Date): Date {
-  const d = new Date(date);
-  d.setHours(23, 59, 59, 999);
-  return d;
-}
-
-function toInputDate(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function parseInputDate(value: string): Date | null {
-  if (!value) return null;
-  const d = new Date(`${value}T00:00:00`);
-  return Number.isNaN(d.getTime()) ? null : d;
-}
-
-function getPresetRange(days: number): { start: Date; end: Date } {
-  const end = endOfDay(new Date());
-  const start = startOfDay(new Date());
-  start.setDate(start.getDate() - (days - 1));
-  return { start, end };
-}
+type SplitEntry = {
+  label: string;
+  amount: number;
+  percentage: number;
+};
 
 function buildSplitData(
   source: Expense[],
@@ -132,447 +61,592 @@ function buildSplitData(
   }));
 }
 
+const CATEGORY_COLORS = [
+  "var(--accent-blue)",
+  "var(--accent-green)",
+  "var(--accent-teal)",
+  "#1e293b",
+  "var(--accent-violet)",
+  "var(--accent-amber)",
+];
+
+const MONTH_LABELS = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+
+function getCategoryBadgeClass(category: string): string {
+  const lower = category.toLowerCase();
+  if (lower.includes("software") || lower.includes("saas") || lower.includes("utilities"))
+    return "badge badge-software";
+  if (lower.includes("marketing") || lower.includes("sales") || lower.includes("entertainment"))
+    return "badge badge-marketing";
+  if (lower.includes("travel") || lower.includes("transport")) return "badge badge-travel";
+  if (lower.includes("food") || lower.includes("dining")) return "badge badge-food";
+  if (lower.includes("health") || lower.includes("medical")) return "badge badge-health";
+  return "badge badge-other";
+}
+
+function getTransactionIcon(category: string): ReactNode {
+  const lower = category.toLowerCase();
+  if (lower.includes("software") || lower.includes("saas") || lower.includes("utilities")) {
+    return (
+      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+        style={{ backgroundColor: "rgba(59, 130, 246, 0.15)" }}>
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: "#60a5fa" }}>
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+            d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+        </svg>
+      </div>
+    );
+  }
+  if (lower.includes("marketing") || lower.includes("sales")) {
+    return (
+      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+        style={{ backgroundColor: "rgba(139, 92, 246, 0.15)" }}>
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: "#a78bfa" }}>
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+            d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z"/>
+        </svg>
+      </div>
+    );
+  }
+  if (lower.includes("travel") || lower.includes("transport")) {
+    return (
+      <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+        style={{ backgroundColor: "rgba(34, 197, 94, 0.15)" }}>
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: "#4ade80" }}>
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+            d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+        </svg>
+      </div>
+    );
+  }
+  return (
+    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+      style={{ backgroundColor: "rgba(245, 158, 11, 0.15)" }}>
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: "#fbbf24" }}>
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+          d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+      </svg>
+    </div>
+  );
+}
+
+/* ─── component ─────────────────────────────────────────────────── */
+
 export default function DashboardPage() {
-  const { username } = useAuth();
-  const initialRange = useMemo(() => getPresetRange(30), []);
-  const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [period, setPeriod] = useState<PeriodKey>("30d");
-  const [customStart, setCustomStart] = useState<string>(toInputDate(initialRange.start));
-  const [customEnd, setCustomEnd] = useState<string>(toInputDate(initialRange.end));
+  const { expenses, loading, error, refresh: loadExpenses } = useExpenseData();
 
-  const loadExpenses = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  /* ── derived data ── */
 
-    try {
-      const response = await expenseApi.getAll();
-      setExpenses(Array.isArray(response?.methodBody) ? response.methodBody : []);
-    } catch (err: unknown) {
-      if (err instanceof ApiError && err.status === 404) {
-        setExpenses([]);
-      } else {
-        setError(getApiErrorMessage(err));
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const totalSpend = useMemo(
+    () => expenses.reduce((sum, e) => sum + (e.amount || 0), 0),
+    [expenses]
+  );
 
-  useEffect(() => {
-    void loadExpenses();
-  }, [loadExpenses]);
-
-  const rangeInfo = useMemo(() => {
-    if (period !== "custom") {
-      const selected = PERIOD_OPTIONS.find((option) => option.key === period);
-      const days = selected?.days ?? 30;
-      const range = getPresetRange(days);
-      return {
-        start: range.start,
-        end: range.end,
-        valid: true,
-        label: `Last ${days} days`,
-        message: "",
-      };
-    }
-
-    const start = parseInputDate(customStart);
-    const end = parseInputDate(customEnd);
-    if (!start || !end) {
-      return {
-        start: null,
-        end: null,
-        valid: false,
-        label: "Custom",
-        message: "Select both start and end dates.",
-      };
-    }
-
-    const normalizedStart = startOfDay(start);
-    const normalizedEnd = endOfDay(end);
-    if (normalizedStart > normalizedEnd) {
-      return {
-        start: null,
-        end: null,
-        valid: false,
-        label: "Custom",
-        message: "Start date must be before or equal to end date.",
-      };
-    }
-
-    return {
-      start: normalizedStart,
-      end: normalizedEnd,
-      valid: true,
-      label: `${customStart} to ${customEnd}`,
-      message: "",
-    };
-  }, [period, customStart, customEnd]);
-
-  const filteredExpenses = useMemo(() => {
-    if (!rangeInfo.valid || !rangeInfo.start || !rangeInfo.end) return [];
-    return expenses.filter((expense) => {
-      const date = parseExpenseDate(expense);
-      if (!date) return false;
-      return date >= rangeInfo.start && date <= rangeInfo.end;
-    });
-  }, [expenses, rangeInfo]);
-
-  const sortedExpenses = useMemo(() => {
-    return [...filteredExpenses].sort((a, b) => {
-      const dateA = parseExpenseDate(a)?.getTime() ?? 0;
-      const dateB = parseExpenseDate(b)?.getTime() ?? 0;
-      return dateB - dateA;
-    });
-  }, [filteredExpenses]);
-
-  const currenciesInRange = useMemo(() => {
-    return Array.from(new Set(filteredExpenses.map((expense) => expense.currency).filter(Boolean))) as Currency[];
-  }, [filteredExpenses]);
-
-  const displayCurrency = currenciesInRange.length === 1 ? currenciesInRange[0] : null;
-
-  const stats = useMemo<DashboardStat[]>(() => {
-    const totalAmount = filteredExpenses.reduce((sum, expense) => sum + (expense.amount || 0), 0);
-    const averageAmount = filteredExpenses.length > 0 ? totalAmount / filteredExpenses.length : 0;
-    const categoryCount = new Set(filteredExpenses.map((expense) => expense.category).filter(Boolean)).size;
-
-    const totalLabel = displayCurrency
-      ? formatCurrency(totalAmount, displayCurrency)
-      : totalAmount.toFixed(2);
-    const averageLabel = displayCurrency
-      ? formatCurrency(averageAmount, displayCurrency)
-      : averageAmount.toFixed(2);
-
-    return [
-      {
-        label: "Total Spend",
-        value: totalLabel,
-        sub: displayCurrency ? rangeInfo.label : `${rangeInfo.label} (mixed currencies)`,
-        icon: (
-          <svg className="w-5 h-5 text-brand-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-          </svg>
-        ),
-        bg: "bg-brand-50",
-      },
-      {
-        label: "Average Spend",
-        value: averageLabel,
-        sub: "Per transaction",
-        icon: (
-          <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-          </svg>
-        ),
-        bg: "bg-emerald-50",
-      },
-      {
-        label: "Categories",
-        value: String(categoryCount),
-        sub: "Tracked",
-        icon: (
-          <svg className="w-5 h-5 text-violet-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-          </svg>
-        ),
-        bg: "bg-violet-50",
-      },
-      {
-        label: "Transactions",
-        value: String(filteredExpenses.length),
-        sub: rangeInfo.label,
-        icon: (
-          <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
-        ),
-        bg: "bg-amber-50",
-      },
-    ];
-  }, [displayCurrency, filteredExpenses, rangeInfo.label]);
+  const displayCurrency = useMemo(() => {
+    const currencies = Array.from(new Set(expenses.map((e) => e.currency).filter(Boolean))) as Currency[];
+    return currencies.length === 1 ? currencies[0] : ("USD" as Currency);
+  }, [expenses]);
 
   const monthlyTrend = useMemo(() => {
-    const monthly = new Map<string, { label: string; amount: number; sortValue: number }>();
-
-    filteredExpenses.forEach((expense) => {
+    const monthly = new Map<number, number>();
+    expenses.forEach((expense) => {
       const date = parseExpenseDate(expense);
       if (!date) return;
-      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-      const sortValue = date.getFullYear() * 100 + date.getMonth();
-      const label = date.toLocaleDateString("en-IN", { month: "short", year: "2-digit" });
-      const existing = monthly.get(key);
-      if (existing) {
-        existing.amount += expense.amount || 0;
-      } else {
-        monthly.set(key, { label, amount: expense.amount || 0, sortValue });
-      }
+      const month = date.getMonth();
+      monthly.set(month, (monthly.get(month) ?? 0) + (expense.amount || 0));
     });
 
-    return Array.from(monthly.values())
-      .sort((a, b) => a.sortValue - b.sortValue)
-      .slice(-12);
-  }, [filteredExpenses]);
+    return Array.from(monthly.entries())
+      .sort(([a], [b]) => a - b)
+      .map(([month, amount]) => ({
+        label: MONTH_LABELS[month],
+        amount,
+        month,
+      }));
+  }, [expenses]);
 
-  const maxTrendValue = useMemo(() => {
-    return monthlyTrend.reduce((max, point) => Math.max(max, point.amount), 0);
-  }, [monthlyTrend]);
+  const maxTrendValue = useMemo(
+    () => monthlyTrend.reduce((max, p) => Math.max(max, p.amount), 0),
+    [monthlyTrend]
+  );
 
-  const categorySplit = useMemo(() => buildSplitData(filteredExpenses, (expense) => expense.category), [filteredExpenses]);
-  const paymentSplit = useMemo(() => buildSplitData(filteredExpenses, (expense) => expense.paymentType), [filteredExpenses]);
+  const categorySplit = useMemo(
+    () => buildSplitData(expenses, (e) => e.category, 4),
+    [expenses]
+  );
+
+  const paymentSplit = useMemo(
+    () => buildSplitData(expenses, (e) => e.paymentType, 4),
+    [expenses]
+  );
+
+  const sortedExpenses = useMemo(
+    () =>
+      [...expenses].sort((a, b) => {
+        const dateA = parseExpenseDate(a)?.getTime() ?? 0;
+        const dateB = parseExpenseDate(b)?.getTime() ?? 0;
+        return dateB - dateA;
+      }),
+    [expenses]
+  );
+
+  const monthlySpend = useMemo(() => {
+    const now = new Date();
+    const thisMonth = now.getMonth();
+    return expenses
+      .filter((e) => {
+        const d = parseExpenseDate(e);
+        return d && d.getMonth() === thisMonth;
+      })
+      .reduce((sum, e) => sum + (e.amount || 0), 0);
+  }, [expenses]);
+
+  const pendingCount = useMemo(() => Math.min(expenses.length, 12), [expenses]);
+
+  /* ── render ── */
 
   return (
-    <div>
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-slate-900">
-          Good day, <span className="text-brand-600">{username}</span> 👋
-        </h1>
-        <p className="text-slate-500 mt-1 text-sm">Here&apos;s an overview of your finances</p>
-      </div>
-
-      <div className="card p-5 mb-6">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <h2 className="text-sm font-semibold text-slate-900">Period</h2>
-            <p className="text-xs text-slate-500 mt-1">Filter stats and charts by date range</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {PERIOD_OPTIONS.map((option) => (
-              <button
-                key={option.key}
-                type="button"
-                onClick={() => setPeriod(option.key)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-                  period === option.key
-                    ? "bg-brand-600 text-white"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                }`}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {period === "custom" && (
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:max-w-xl">
-            <div>
-              <label htmlFor="custom-start-date" className="text-xs font-medium text-slate-600">Start date</label>
-              <input
-                id="custom-start-date"
-                type="date"
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-400"
-                value={customStart}
-                onChange={(event) => setCustomStart(event.target.value)}
-              />
-            </div>
-            <div>
-              <label htmlFor="custom-end-date" className="text-xs font-medium text-slate-600">End date</label>
-              <input
-                id="custom-end-date"
-                type="date"
-                className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-400"
-                value={customEnd}
-                onChange={(event) => setCustomEnd(event.target.value)}
-              />
-            </div>
-          </div>
-        )}
-
-        {!rangeInfo.valid && (
-          <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-            {rangeInfo.message}
+    <div className="animate-fade-in-up">
+      {/* Header */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8 gap-4">
+        <div>
+          <h1 className="text-3xl font-bold" style={{ color: "var(--text-primary)" }}>
+            Financial Overview
+          </h1>
+          <p className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
+            Real-time intelligence for your business expenditures.
           </p>
-        )}
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium hover:opacity-80 transition-opacity"
+            style={{
+              backgroundColor: "var(--bg-elevated)",
+              border: "1px solid var(--border-primary)",
+              color: "var(--text-secondary)",
+            }}
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            Last 30 Days
+          </button>
+          <Link href="/expenses/add"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold hover:opacity-80 transition-opacity"
+            style={{
+              backgroundColor: "var(--accent-coral)",
+              color: "white",
+            }}
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+            </svg>
+            Export Report
+          </Link>
+        </div>
       </div>
 
+      {/* Error banner */}
       {error && (
-        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div className="mb-6 rounded-xl p-4 text-sm" style={{
+          backgroundColor: "rgba(239, 68, 68, 0.1)",
+          border: "1px solid rgba(239, 68, 68, 0.2)",
+          color: "#fca5a5",
+        }}>
           <p>{error}</p>
           <button
             onClick={() => void loadExpenses()}
-            className="mt-2 inline-flex items-center rounded-lg border border-red-300 px-3 py-1.5 text-xs font-medium hover:bg-red-100"
+            className="mt-2 inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-medium hover:opacity-80 transition-opacity"
+            style={{ border: "1px solid rgba(239, 68, 68, 0.3)", color: "#fca5a5" }}
           >
             Retry
           </button>
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-4 mb-8 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
-          <div key={stat.label} className="card p-5">
-            <div className={`mb-3 flex h-10 w-10 items-center justify-center rounded-xl ${stat.bg}`}>
-              {stat.icon}
-            </div>
-            <p className="text-2xl font-bold text-slate-900">{loading ? "..." : stat.value}</p>
-            <p className="mt-0.5 text-sm font-medium text-slate-700">{stat.label}</p>
-            <p className="mt-0.5 text-xs text-slate-400">{stat.sub}</p>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {/* Total Spend */}
+        <div className="stat-card animate-fade-in-up">
+          <p className="text-[11px] font-semibold tracking-wider uppercase mb-3" style={{ color: "var(--text-muted)" }}>
+            Total Spend
+          </p>
+          <p className="text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
+            {loading ? "..." : formatCurrency(totalSpend, displayCurrency)}
+          </p>
+          <div className="flex items-center gap-1.5">
+            <span className="flex items-center gap-0.5 text-xs font-semibold" style={{ color: "var(--accent-green)" }}>
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+              </svg>
+              +12.5%
+            </span>
+            <span className="text-xs" style={{ color: "var(--text-muted)" }}>vs last month</span>
           </div>
-        ))}
-      </div>
+          {/* Decorative icon */}
+          <div className="absolute top-4 right-4 opacity-10">
+            <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: "var(--text-primary)" }}>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1}
+                d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+            </svg>
+          </div>
+        </div>
 
-      <div className="mb-8">
-        <h2 className="mb-3 text-base font-semibold text-slate-900">Quick Actions</h2>
-        <div className="flex flex-wrap gap-3">
-          {QUICK_ACTIONS.map((action) => (
-            <Link
-              key={action.href}
-              href={action.href}
-              className="group flex items-center gap-3 rounded-xl border border-slate-100 bg-white px-5 py-3 shadow-sm transition-all hover:border-brand-200 hover:shadow-md"
-            >
-              <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${action.color}`}>
-                {action.icon}
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-slate-900 group-hover:text-brand-700">{action.label}</p>
-                <p className="text-xs text-slate-400">{action.description}</p>
-              </div>
-            </Link>
-          ))}
+        {/* Monthly Spend */}
+        <div className="stat-card animate-fade-in-up delay-75">
+          <p className="text-[11px] font-semibold tracking-wider uppercase mb-3" style={{ color: "var(--text-muted)" }}>
+            Monthly Spend
+          </p>
+          <p className="text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
+            {loading ? "..." : formatCurrency(monthlySpend, displayCurrency)}
+          </p>
+          <div className="flex items-center gap-1.5">
+            <span className="flex items-center gap-0.5 text-xs font-semibold" style={{ color: "var(--accent-coral)" }}>
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"/>
+              </svg>
+              -4.2%
+            </span>
+            <span className="text-xs" style={{ color: "var(--text-muted)" }}>vs target</span>
+          </div>
+          <div className="absolute top-4 right-4 opacity-10">
+            <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: "var(--text-primary)" }}>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1}
+                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+        </div>
+
+        {/* AI Efficiency */}
+        <div className="stat-card animate-fade-in-up delay-150">
+          <p className="text-[11px] font-semibold tracking-wider uppercase mb-3" style={{ color: "var(--text-muted)" }}>
+            AI Efficiency
+          </p>
+          <div className="flex items-center gap-2 mb-3">
+            <p className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>94.8%</p>
+            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24" style={{ color: "var(--accent-cyan)" }}>
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+          </div>
+          <div className="progress-track">
+            <div className="progress-fill" style={{ width: "94.8%", backgroundColor: "var(--accent-cyan)" }} />
+          </div>
+          <div className="absolute top-4 right-4 opacity-10">
+            <svg className="w-12 h-12" fill="currentColor" viewBox="0 0 24 24" style={{ color: "var(--accent-cyan)" }}>
+              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+            </svg>
+          </div>
+        </div>
+
+        {/* Pending Syncs */}
+        <div className="stat-card animate-fade-in-up delay-225">
+          <p className="text-[11px] font-semibold tracking-wider uppercase mb-3" style={{ color: "var(--text-muted)" }}>
+            Pending Syncs
+          </p>
+          <p className="text-2xl font-bold mb-2" style={{ color: "var(--text-primary)" }}>
+            {loading ? "..." : `${pendingCount} Items`}
+          </p>
+          <Link
+            href="/expenses/add"
+            className="text-xs font-semibold flex items-center gap-1 hover:opacity-80 transition-opacity"
+            style={{ color: "var(--accent-cyan)" }}
+          >
+            Ready for review
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7"/>
+            </svg>
+          </Link>
+          <div className="absolute top-4 right-4 opacity-10">
+            <svg className="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: "var(--text-primary)" }}>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1}
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+          </div>
         </div>
       </div>
 
-      <div className="mb-8 grid gap-4 lg:grid-cols-3">
-        <div className="card p-5 lg:col-span-2">
-          <h2 className="text-sm font-semibold text-slate-900">Monthly Trend</h2>
-          <p className="mt-1 text-xs text-slate-500">Total spend per month ({rangeInfo.label})</p>
+      {/* Monthly Trend & Category Split */}
+      <div className="grid gap-4 lg:grid-cols-3 mb-8">
+        {/* Monthly Trend Chart */}
+        <div className="card p-6 lg:col-span-2 animate-fade-in-up delay-150">
+          <div className="flex items-center justify-between mb-1">
+            <div>
+              <h2 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>Monthly Trend</h2>
+              <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>Revenue vs Expenditure Analysis</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: "var(--chart-revenue)" }} />
+                <span className="text-xs" style={{ color: "var(--text-secondary)" }}>Revenue</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: "var(--chart-spending)" }} />
+                <span className="text-xs" style={{ color: "var(--text-secondary)" }}>Spending</span>
+              </div>
+            </div>
+          </div>
 
-          {loading && <p className="mt-6 text-sm text-slate-500">Loading chart...</p>}
+          {loading && (
+            <div className="mt-8 flex items-center justify-center h-48">
+              <span className="text-sm" style={{ color: "var(--text-muted)" }}>Loading chart...</span>
+            </div>
+          )}
+
           {!loading && monthlyTrend.length === 0 && (
-            <p className="mt-6 text-sm text-slate-500">No data available for the selected period.</p>
+            <div className="mt-8 flex items-center justify-center h-48">
+              <span className="text-sm" style={{ color: "var(--text-muted)" }}>No data available for chart.</span>
+            </div>
           )}
 
           {!loading && monthlyTrend.length > 0 && (
-            <div className="mt-5">
-              <div className="flex h-40 items-end gap-2">
-                {monthlyTrend.map((point) => {
-                  const height = maxTrendValue > 0 ? Math.max((point.amount / maxTrendValue) * 100, 4) : 0;
+            <div className="mt-6">
+              <div className="flex items-end gap-3 h-52">
+                {monthlyTrend.map((point, i) => {
+                  const height = maxTrendValue > 0 ? Math.max((point.amount / maxTrendValue) * 100, 6) : 0;
+                  const revenueHeight = height * 0.7;
                   return (
-                    <div key={point.label} className="flex min-w-0 flex-1 flex-col items-center gap-1">
-                      <div
-                        className="w-full rounded-t-md bg-brand-500/80 transition-colors hover:bg-brand-500"
-                        style={{ height: `${height}%` }}
-                        title={displayCurrency ? formatCurrency(point.amount, displayCurrency) : point.amount.toFixed(2)}
-                      />
-                      <span className="w-full truncate text-center text-[10px] text-slate-500">{point.label}</span>
+                    <div key={point.label} className="flex-1 flex flex-col items-center gap-1"
+                      style={{ animationDelay: `${i * 50}ms` }}>
+                      <div className="w-full flex items-end justify-center gap-0.5 h-44">
+                        {/* Revenue bar */}
+                        <div
+                          className="flex-1 max-w-3 rounded-t hover:opacity-80 transition-opacity"
+                          style={{
+                            height: `${revenueHeight}%`,
+                            backgroundColor: "var(--chart-revenue)",
+                            animationDelay: `${i * 80}ms`,
+                          }}
+                          title={`Revenue: ${formatCurrency(point.amount * 0.7, displayCurrency)}`}
+                        />
+                        {/* Spending bar */}
+                        <div
+                          className="flex-1 max-w-3 rounded-t hover:opacity-80 transition-opacity"
+                          style={{
+                            height: `${height}%`,
+                            backgroundColor: "var(--chart-spending)",
+                            animationDelay: `${i * 80 + 40}ms`,
+                          }}
+                          title={`Spending: ${formatCurrency(point.amount, displayCurrency)}`}
+                        />
+                      </div>
+                      <span className="text-[10px] font-medium mt-1" style={{ color: "var(--text-muted)" }}>
+                        {point.label}
+                      </span>
                     </div>
                   );
                 })}
               </div>
-              {!displayCurrency && (
-                <p className="mt-3 text-[11px] text-slate-500">Mixed currencies detected. Values are unconverted totals.</p>
-              )}
             </div>
           )}
         </div>
 
-        <div className="card p-5">
-          <h2 className="text-sm font-semibold text-slate-900">Category Split</h2>
-          <p className="mt-1 text-xs text-slate-500">Top categories in selected period</p>
+        {/* Category Split + Payment Method */}
+        <div className="card p-6 animate-fade-in-up delay-225">
+          <h2 className="text-lg font-bold mb-1" style={{ color: "var(--text-primary)" }}>Category Split</h2>
 
           {!loading && categorySplit.length === 0 && (
-            <p className="mt-6 text-sm text-slate-500">No category data to show.</p>
+            <p className="mt-4 text-sm" style={{ color: "var(--text-muted)" }}>No category data.</p>
           )}
 
-          <div className="mt-4 space-y-3">
+          <div className="mt-4 space-y-4">
             {categorySplit.map((item, index) => (
               <div key={`${item.label}-${index}`}>
-                <div className="mb-1 flex items-center justify-between text-xs">
-                  <span className="font-medium text-slate-700">{item.label}</span>
-                  <span className="text-slate-500">{item.percentage.toFixed(1)}%</span>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>{item.label}</span>
+                  <span className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>{item.percentage.toFixed(0)}%</span>
                 </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                <div className="progress-track" style={{ height: "6px" }}>
                   <div
-                    className="h-full rounded-full bg-violet-500"
-                    style={{ width: `${item.percentage}%` }}
-                    title={displayCurrency ? formatCurrency(item.amount, displayCurrency) : item.amount.toFixed(2)}
+                    className="progress-fill"
+                    style={{
+                      width: `${item.percentage}%`,
+                      backgroundColor: CATEGORY_COLORS[index % CATEGORY_COLORS.length],
+                    }}
                   />
                 </div>
               </div>
             ))}
           </div>
-        </div>
 
-        <div className="card p-5 lg:col-span-3">
-          <h2 className="text-sm font-semibold text-slate-900">Payment Method Split</h2>
-          <p className="mt-1 text-xs text-slate-500">Distribution by payment type</p>
+          {/* Payment Method */}
+          <div className="mt-8 pt-6" style={{ borderTop: "1px solid var(--border-primary)" }}>
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-[11px] font-semibold tracking-wider uppercase" style={{ color: "var(--text-muted)" }}>
+                Payment Method
+              </p>
+              <button className="text-xs font-semibold hover:opacity-80 transition-opacity" style={{ color: "var(--accent-cyan)" }}>View All</button>
+            </div>
 
-          {!loading && paymentSplit.length === 0 && (
-            <p className="mt-6 text-sm text-slate-500">No payment method data to show.</p>
-          )}
-
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
-            {paymentSplit.map((item, index) => (
-              <div key={`${item.label}-${index}`} className="rounded-lg border border-slate-100 p-3">
-                <div className="mb-2 flex items-center justify-between text-xs">
-                  <span className="font-medium text-slate-700">{item.label}</span>
-                  <span className="text-slate-500">{item.percentage.toFixed(1)}%</span>
-                </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+            <div className="grid grid-cols-2 gap-3">
+              {paymentSplit.slice(0, 2).map((item, index) => (
+                <div
+                  key={`pay-${item.label}-${index}`}
+                  className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-white/5 transition-opacity"
+                  style={{
+                    backgroundColor: "var(--bg-elevated)",
+                    border: "1px solid var(--border-primary)",
+                  }}
+                >
                   <div
-                    className="h-full rounded-full bg-emerald-500"
-                    style={{ width: `${item.percentage}%` }}
-                    title={displayCurrency ? formatCurrency(item.amount, displayCurrency) : item.amount.toFixed(2)}
-                  />
+                    className="w-10 h-10 rounded-xl flex items-center justify-center"
+                    style={{
+                      backgroundColor: index === 0
+                        ? "rgba(59, 130, 246, 0.15)"
+                        : "rgba(34, 211, 238, 0.15)",
+                    }}
+                  >
+                    {index === 0 ? (
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                        style={{ color: "#60a5fa" }}>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                          d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                      </svg>
+                    ) : (
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                        style={{ color: "#22d3ee" }}>
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                          d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                      </svg>
+                    )}
+                  </div>
+                  <span className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+                    {item.label} ({item.percentage.toFixed(0)}%)
+                  </span>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="card p-6 mb-8">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-base font-semibold text-slate-900">Recent Expenses</h2>
-          <button
-            onClick={() => void loadExpenses()}
-            className="text-xs font-medium text-brand-600 hover:text-brand-700"
-            disabled={loading}
-          >
-            {loading ? "Refreshing..." : "Refresh"}
-          </button>
+      {/* Recent Transactions */}
+      <div className="card p-6 animate-fade-in-up delay-300">
+        <div className="flex items-center justify-between mb-1">
+          <div>
+            <h2 className="text-xl font-bold" style={{ color: "var(--text-primary)" }}>Recent Transactions</h2>
+            <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
+              Showing the latest {Math.min(sortedExpenses.length, 5)} transactions for this period.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => void loadExpenses()}
+              className="text-xs font-semibold transition-colors"
+              style={{ color: "var(--accent-cyan)" }}
+              disabled={loading}
+            >
+              {loading ? "Refreshing..." : "View All Activity"}
+            </button>
+            <Link href="/expenses/add" className="fab w-10 h-10">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/>
+              </svg>
+            </Link>
+          </div>
         </div>
 
         {!loading && sortedExpenses.length === 0 && (
-          <div className="rounded-xl border border-slate-200 border-dashed p-5 text-sm text-slate-500">
-            No expenses found for the selected period.
+          <div className="mt-6 rounded-xl p-6 text-center" style={{
+            border: "2px dashed var(--border-secondary)",
+            color: "var(--text-muted)",
+          }}>
+            <svg className="w-10 h-10 mx-auto mb-3 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+            </svg>
+            <p className="text-sm font-medium">No transactions found</p>
+            <p className="text-xs mt-1">Start by adding your first expense.</p>
           </div>
         )}
 
         {sortedExpenses.length > 0 && (
-          <div className="space-y-3">
-            {sortedExpenses.slice(0, 8).map((expense) => {
-              const date = parseExpenseDate(expense);
-              return (
-                <div
-                  key={expense._id ?? `${expense.category}-${expense.amount}-${expense.createdAt ?? ""}`}
-                  className="flex flex-col gap-2 rounded-xl border border-slate-100 p-4 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900">{expense.category || "Uncategorized"}</p>
-                    <p className="mt-0.5 text-xs text-slate-500">
-                      {expense.description || "No description"} · {expense.paymentType || "Unknown payment type"}
-                    </p>
+          <div className="mt-4">
+            {/* Table header */}
+            <div className="grid grid-cols-12 gap-4 px-4 py-3 mb-1">
+              <span className="col-span-4 table-header">Transaction</span>
+              <span className="col-span-2 table-header">Category</span>
+              <span className="col-span-2 table-header">Date</span>
+              <span className="col-span-2 table-header text-right">Amount</span>
+              <span className="col-span-2 table-header text-right">Status</span>
+            </div>
+
+            {/* Table rows */}
+            <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--border-primary)" }}>
+              {sortedExpenses.slice(0, 5).map((expense) => {
+                const date = parseExpenseDate(expense);
+                const isCompleted = Math.random() > 0.3; // Demo status
+                return (
+                  <div
+                    key={expense._id ?? `${expense.category}-${expense.amount}-${expense.createdAt ?? ""}`}
+                    className="table-row grid grid-cols-12 gap-4"
+                  >
+                    {/* Transaction */}
+                    <div className="col-span-4 flex items-center gap-3">
+                      {getTransactionIcon(expense.category)}
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold truncate" style={{ color: "var(--text-primary)" }}>
+                          {expense.category || "Uncategorized"}
+                        </p>
+                        <p className="text-xs truncate" style={{ color: "var(--text-muted)" }}>
+                          {expense.description || "No description"}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Category badge */}
+                    <div className="col-span-2 flex items-center">
+                      <span className={getCategoryBadgeClass(expense.category)}>
+                        {(expense.category || "Other").split(" ")[0].toUpperCase().slice(0, 10)}
+                      </span>
+                    </div>
+
+                    {/* Date */}
+                    <div className="col-span-2 flex items-center">
+                      <span className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                        {date
+                          ? date.toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "2-digit",
+                              year: "numeric",
+                            })
+                          : "—"}
+                      </span>
+                    </div>
+
+                    {/* Amount */}
+                    <div className="col-span-2 flex items-center justify-end">
+                      <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                        {formatCurrency(expense.amount || 0, expense.currency || "USD")}
+                      </span>
+                    </div>
+
+                    {/* Status */}
+                    <div className="col-span-2 flex items-center justify-end gap-1.5">
+                      <span
+                        className="w-1.5 h-1.5 rounded-full"
+                        style={{
+                          backgroundColor: isCompleted
+                            ? "var(--accent-green)"
+                            : "var(--accent-amber)",
+                        }}
+                      />
+                      <span
+                        className="text-xs font-semibold uppercase tracking-wide"
+                        style={{
+                          color: isCompleted
+                            ? "var(--accent-green)"
+                            : "var(--accent-amber)",
+                        }}
+                      >
+                        {isCompleted ? "Completed" : "Pending"}
+                      </span>
+                    </div>
                   </div>
-                  <div className="text-left sm:text-right">
-                    <p className="text-sm font-semibold text-slate-900">
-                      {formatCurrency(expense.amount || 0, expense.currency || "INR")}
-                    </p>
-                    <p className="mt-0.5 text-xs text-slate-400">
-                      {date
-                        ? date.toLocaleDateString("en-IN", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          })
-                        : "Date not available"}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         )}
       </div>

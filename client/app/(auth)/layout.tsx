@@ -4,13 +4,13 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-brand-900 to-slate-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-gradient-to-br from-[#0a1e30] via-[#053857] to-[#05111b] flex items-center justify-center p-4">
+      <div className="w-full max-w-[420px]">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-brand-500 mb-4">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-[14px] bg-[#0284c7] mb-3">
             <svg
-              className="w-7 h-7 text-white"
+              className="w-[22px] h-[22px] text-white"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -23,8 +23,8 @@ export default function AuthLayout({
               />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">
-            Expensify<span className="text-brand-400">.ai</span>
+          <h1 className="text-[26px] font-bold text-white tracking-tight">
+            Expensify<span className="text-[#0284c7]">.ai</span>
           </h1>
           <p className="text-slate-400 text-sm mt-1">
             Smart expense tracking, simplified
@@ -32,7 +32,7 @@ export default function AuthLayout({
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-2xl p-8">{children}</div>
+        <div className="bg-white rounded-[20px] shadow-2xl p-8">{children}</div>
       </div>
     </div>
   );

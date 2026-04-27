@@ -22,9 +22,10 @@ public class UserDetailedServiceImpl implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        User user = userRepository.findByUsername(username);
+        String normalizedUsername = username.toLowerCase();
+        User user = userRepository.findByUsernameIgnoreCase(normalizedUsername);
         if (user == null) {
-            throw new UsernameNotFoundException(username);
+            throw new UsernameNotFoundException(normalizedUsername);
         }
         SimpleGrantedAuthority authority;
         if (user.getRole() == null)
