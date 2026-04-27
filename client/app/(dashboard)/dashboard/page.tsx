@@ -14,6 +14,18 @@ function parseExpenseDate(expense: Expense): Date | null {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
+function startOfDay(value: Date): Date {
+  const next = new Date(value);
+  next.setHours(0, 0, 0, 0);
+  return next;
+}
+
+function endOfDay(value: Date): Date {
+  const next = new Date(value);
+  next.setHours(23, 59, 59, 999);
+  return next;
+}
+
 function formatCurrency(amount: number, currency: Currency): string {
   try {
     return new Intl.NumberFormat("en-US", {
@@ -188,16 +200,16 @@ export default function DashboardPage() {
   const expenses = useMemo(() => {
     if (period === "ALL") return rawExpenses;
     let startDate = new Date(0);
-    let endDate = new Date();
+    let endDate = endOfDay(new Date());
 
     if (period === "CUSTOM") {
-      startDate = customStartDate ? new Date(`${customStartDate}T00:00:00`) : new Date(0);
-      endDate = customEndDate ? new Date(`${customEndDate}T23:59:59`) : new Date();
+      startDate = customStartDate ? startOfDay(new Date(`${customStartDate}T00:00:00`)) : new Date(0);
+      endDate = customEndDate ? endOfDay(new Date(`${customEndDate}T00:00:00`)) : endOfDay(new Date());
     } else {
       let days = 30;
       if (period === "7D") days = 7;
       if (period === "90D") days = 90;
-      startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+      startDate = startOfDay(new Date(Date.now() - (days - 1) * 24 * 60 * 60 * 1000));
     }
 
     return rawExpenses.filter((e) => {
