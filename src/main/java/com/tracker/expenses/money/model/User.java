@@ -17,6 +17,7 @@ import java.util.List;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@Getter
 @Schema(description = "User")
 @Document(collection = "user") // we are creating a collection in Mongo if it doesn't exist.
 //@CompoundIndex(name = "user_idx", def = "{'username' : 1, 'email' : 1}", unique = true)
@@ -92,5 +93,9 @@ public class User {
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
+    }
+
+    public String getId() {
+        return _id;
     }
 }
