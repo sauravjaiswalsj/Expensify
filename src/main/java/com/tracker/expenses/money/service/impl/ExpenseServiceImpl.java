@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Locale;
 
 import static com.tracker.expenses.money.common.GetCurrentTime.convertLocalDateTimeToDate;
 
@@ -78,6 +79,35 @@ public class ExpenseServiceImpl implements ExpenseService {
         catch (Exception ex){
             log.error("Unexpected error retrieving expenses", ex);
             return new Response<>(new ResponseHeader(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage()), null);
+        }
+    }
+
+    @Override
+    @Transactional
+    public Response<ResponseHeader, Expense> deleteExpense(Expense expense, String username) {
+        try {
+            if (expense == null || expense.get_id() == null || expense.get_id().isBlank()) {
+                throw new InvalidExpenseException("Expense id is required");
+            }
+            if (username == null || username.isBlank()) {
+                throw new InvalidExpenseException("Username is required");
+            }
+
+            String normalizedUsername = username.trim().toLowerCase(Locale.ROOT);
+            long deletedCount = expenseRepository.deleteByIdAndUsername(expense.get_id(), normalizedUsername);
+
+            if (deletedCount == 0) {
+                throw new InvalidExpenseException("Expense not found for user");
+            }
+
+            log.info("Deleted expense {} for user: {}", expense.get_id(), normalizedUsername);
+            return new Response<>(new ResponseHeader(HttpStatus.OK, "Expense deleted successfully"), expense);
+        } catch (InvalidExpenseException e) {
+            log.warn("Error deleting expense: {}", e.getMessage());
+            return new Response<>(new ResponseHeader(HttpStatus.NOT_FOUND, e.getMessage()), expense);
+        } catch (Exception ex) {
+            log.error("Unexpected error deleting expense", ex);
+            return new Response<>(new ResponseHeader(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage()), expense);
         }
     }
 

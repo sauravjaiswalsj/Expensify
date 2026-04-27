@@ -118,6 +118,9 @@ Dockerfile.*
 
 # GitHub-specific
 .github/
+!.github/
+!.github/workflows/
+!.github/workflows/deploy-backend-azure.yml
 
 # ===============================
 # Next.js / Node.js (Frontend/Client)

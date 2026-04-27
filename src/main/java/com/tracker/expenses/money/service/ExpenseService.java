@@ -11,7 +11,7 @@ import java.util.List;
 public interface ExpenseService {
     Response<ResponseHeader, Expense> addExpense(Expense Expense);
 //    Response<ResponseHeader, Expense> updateExpense(Expense Expense);
-//    Response<ResponseHeader, Expense> deleteExpense(String id);
+    Response<ResponseHeader, Expense> deleteExpense(Expense Expense, String username);
 //    Response<ResponseHeader, Expense> getExpenseById(String id);
     Response<ResponseHeader, List<Expense>> getExpenseByUserId(String userId);
 }

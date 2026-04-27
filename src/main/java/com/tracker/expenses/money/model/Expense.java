@@ -4,9 +4,8 @@ import com.tracker.expenses.money.enums.Currency;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import jakarta.persistence.*;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
