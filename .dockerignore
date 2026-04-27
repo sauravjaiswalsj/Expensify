@@ -1,0 +1,23 @@
+# VCS and IDE
+.git
+.gitignore
+.idea
+.DS_Store
+
+# Build output
+target
+log
+
+# Maven wrapper cache
+.mvn/wrapper/maven-wrapper.jar
+
+# Frontend (backend-only image)
+client
+
+# Local env/config files
+.env
+*.local
+
+# Docs/static artifacts not needed at build time
+docs
+

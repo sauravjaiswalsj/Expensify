@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: money-backend
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    autoDeploy: true
+    envVars:
+      - key: JAVA_TOOL_OPTIONS
+        value: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
+      # Set these in Render dashboard as secrets:
+      # - SPRING_DATA_MONGODB_URI
+      # - JWT_SECRET_KEY
+      # - SUPPORT_EMAIL
+      # - APP_PASSWORD
+
