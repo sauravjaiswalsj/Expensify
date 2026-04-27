@@ -1,6 +1,7 @@
 package com.tracker.expenses.money.controller;
 
 import com.tracker.expenses.money.dto.Response;
+import com.tracker.expenses.money.model.User;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -16,5 +17,23 @@ public class Authentication {
             log.info("Unable to authenticate the user: {}", authentication.getName());
         }
         return authentication.isAuthenticated();
+    }
+    public User getCurrentUser(){
+        org.springframework.security.core.Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            assert authentication != null;
+            log.info("Unable to authenticate the user: {}", authentication.getName());
+            return null;
+        }
+        return (User) authentication.getPrincipal();
+    }
+
+    public String getCurrentUserName() {
+        org.springframework.security.core.Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            assert authentication != null;
+            log.info("Unable to authenticate the user: {}", authentication.getName());
+        }
+        return authentication.getName();
     }
 }

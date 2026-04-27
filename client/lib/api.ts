@@ -149,4 +149,6 @@ export const expenseApi = {
       method: "POST",
       body: JSON.stringify(data),
     }),
+
+  getAll: () => request<ApiResponse<Expense[]>>("/expenses"),
 };

@@ -20,7 +20,7 @@ public class Expense {
     @Id
     private String _id;
 
-    @Indexed(unique = true)
+    @Indexed
     @Schema(description = "This is the username of the person", example = "user@123")
     private String username;
 

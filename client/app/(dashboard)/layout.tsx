@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import Sidebar from "@/components/sidebar";
@@ -12,6 +12,7 @@ export default function DashboardLayout({
 }) {
   const { isAuthenticated, hydrated } = useAuth();
   const router = useRouter();
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (hydrated && !isAuthenticated) {
@@ -33,9 +34,38 @@ export default function DashboardLayout({
 
   return (
     <div className="flex min-h-screen bg-slate-50">
-      <Sidebar />
-      <main className="flex-1 ml-64 min-h-screen">
-        <div className="max-w-5xl mx-auto px-6 py-8">{children}</div>
+      <Sidebar
+        mobileOpen={mobileSidebarOpen}
+        onCloseMobile={() => setMobileSidebarOpen(false)}
+      />
+
+      <main className="min-h-screen flex-1 md:ml-64">
+        <div className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50/95 px-4 py-3 backdrop-blur md:hidden">
+          <button
+            type="button"
+            onClick={() => setMobileSidebarOpen(true)}
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700"
+          >
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6h16M4 12h16M4 18h16"
+              />
+            </svg>
+            Menu
+          </button>
+        </div>
+
+        <div className="mx-auto w-full max-w-5xl px-4 py-5 sm:px-6 sm:py-8">
+          {children}
+        </div>
       </main>
     </div>
   );
