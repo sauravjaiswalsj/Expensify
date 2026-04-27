@@ -38,7 +38,7 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
-const PROFILE_STORAGE_KEY = "expensify-profile";
+const PROFILE_STORAGE_KEY = "rivo-profile";
 
 function buildDefaultProfile(username: string | null): UserProfile {
   return {

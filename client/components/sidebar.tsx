@@ -58,7 +58,7 @@ const BOTTOM_NAV = [
 	{
 		key: "support",
 		label: "Support",
-		href: "mailto:support@expensify.ai",
+		href: "mailto:support@rivo.ai",
 		icon: (
 			<svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 				<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
@@ -100,7 +100,7 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile }: SidebarPr
 					<span className="w-6 h-6 rounded-md flex items-center justify-center bg-blue-500 text-white text-xs">
 						$
 					</span>
-					Expensify<span style={{ color: "var(--sidebar-brand)" }}>.ai</span>
+					Rivo
 				</h1>
 			</div>
 

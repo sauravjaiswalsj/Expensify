@@ -57,7 +57,7 @@ export default function DashboardLayout({
 
   useEffect(() => {
     if (hydrated && !isAuthenticated) {
-      router.replace("/login?reason=session-expired");
+      router.replace("/login");
     }
   }, [hydrated, isAuthenticated, router]);
 
@@ -102,7 +102,7 @@ export default function DashboardLayout({
               $
             </span>
             <span className="truncate text-sm font-bold" style={{ color: "var(--text-primary)" }}>
-              Expensify<span style={{ color: "var(--accent-cyan)" }}>.ai</span>
+              Rivo
             </span>
           </Link>
           <Link

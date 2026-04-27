@@ -4,8 +4,8 @@ import { AuthProvider } from "@/lib/auth-context";
 import { ThemeProvider } from "@/lib/theme-context";
 
 export const metadata: Metadata = {
-  title: "Expensify.ai — Track Your Expenses",
-  description: "A smart expense tracker to manage your finances effortlessly.",
+  title: "Rivo - Spend Management",
+  description: "Cards, approvals, reimbursements, and spend insights for modern teams.",
 };
 
 export default function RootLayout({

@@ -3,7 +3,8 @@
 import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { authApi } from "@/lib/api";
+import { Eye, EyeOff, LockKeyhole, User } from "lucide-react";
+import { AUTH_EXPIRED_STORAGE_KEY, authApi } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 
 export default function LoginPage() {
@@ -18,8 +19,13 @@ export default function LoginPage() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("reason") === "session-expired") {
+    const sessionExpired =
+      params.get("reason") === "session-expired" ||
+      window.sessionStorage.getItem(AUTH_EXPIRED_STORAGE_KEY) === "true";
+
+    if (sessionExpired) {
       setError("Your session has expired. Please sign in again.");
+      window.sessionStorage.removeItem(AUTH_EXPIRED_STORAGE_KEY);
     }
   }, []);
 
@@ -52,20 +58,27 @@ export default function LoginPage() {
 
   return (
     <>
-      <h2 className="text-[22px] font-bold mb-1" style={{ color: "var(--text-primary)" }}>Welcome back</h2>
-      <p className="text-sm mb-6" style={{ color: "var(--text-muted)" }}>Sign in to your account</p>
+      <div className="mb-7">
+        <p className="text-sm font-bold uppercase tracking-[0.12em] text-[#5865f2]">Rivo access</p>
+        <h2 className="mt-3 text-3xl font-semibold tracking-normal text-[#2b2a27]">Welcome back</h2>
+        <p className="mt-2 text-sm leading-6 text-[#6f685f]">
+          Sign in to review spend, approvals, and reporting.
+        </p>
+      </div>
 
       {error && (
-        <div className="mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-100 text-red-600 text-sm">
+        <div className="mb-4 rounded-[10px] border border-[#f1c7c2] bg-[#fff1ef] px-4 py-3 text-sm text-[#b42318]">
           {error}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-5">
         <div>
-          <label className="label">Username</label>
+          <label className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-[#716b62]">Username</label>
+          <div className="relative">
+            <User className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9a948b]" />
           <input
-            className="input-field"
+            className="h-12 w-full rounded-[10px] border border-[#d9d5cc] bg-white px-11 text-sm text-[#2b2a27] outline-none transition placeholder:text-[#9a948b] focus:border-[#5865f2] focus:ring-4 focus:ring-[#5865f2]/10"
             type="text"
             placeholder="your_username"
             value={username}
@@ -73,13 +86,15 @@ export default function LoginPage() {
             required
             autoComplete="username"
           />
+          </div>
         </div>
 
         <div>
-          <label className="label">Password</label>
+          <label className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-[#716b62]">Password</label>
           <div className="relative">
+            <LockKeyhole className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9a948b]" />
             <input
-              className="input-field pl-4 pr-10"
+              className="h-12 w-full rounded-[10px] border border-[#d9d5cc] bg-white px-11 text-sm text-[#2b2a27] outline-none transition placeholder:text-[#9a948b] focus:border-[#5865f2] focus:ring-4 focus:ring-[#5865f2]/10"
               type={showPassword ? "text" : "password"}
               placeholder="••••••••"
               value={password}
@@ -89,49 +104,39 @@ export default function LoginPage() {
             />
             <button
               type="button"
-              className="absolute inset-y-0 right-3 flex items-center transition-colors"
-              style={{ color: "var(--text-muted)" }}
+              className="absolute inset-y-0 right-3 flex items-center text-[#8a8379] transition hover:text-[#5865f2]"
               onClick={() => setShowPassword((v) => !v)}
               tabIndex={-1}
+              aria-label={showPassword ? "Hide password" : "Show password"}
             >
-              {showPassword ? (
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
-                </svg>
-              ) : (
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                </svg>
-              )}
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
-          <div className="mt-1.5 text-right">
+          <div className="mt-2 text-right">
             <Link
               href="/forgot-password"
-              className="text-xs font-medium"
-              style={{ color: "var(--accent-cyan)" }}
+              className="text-sm font-semibold text-[#5865f2] transition hover:text-[#4651d4]"
             >
               Forgot password?
             </Link>
           </div>
         </div>
 
-        <button type="submit" className="w-full btn-primary" disabled={loading}>
+        <button type="submit" className="h-12 w-full rounded-[10px] bg-[#5865f2] px-4 text-sm font-bold text-white shadow-[0_14px_30px_rgba(88,101,242,0.24)] transition hover:bg-[#4c58df] disabled:cursor-not-allowed disabled:opacity-60" disabled={loading}>
           {loading ? "Signing in…" : "Sign in"}
         </button>
       </form>
 
-      <p className="mt-6 text-center text-sm" style={{ color: "var(--text-muted)" }}>
+      <p className="mt-7 text-center text-sm text-[#706a61]">
         Don&apos;t have an account?{" "}
-        <Link href="/signup" className="font-bold" style={{ color: "var(--accent-cyan)" }}>
+        <Link href="/signup" className="font-bold text-[#5865f2] transition hover:text-[#4651d4]">
           Create one
         </Link>
       </p>
 
-      <p className="mt-2 text-center text-sm" style={{ color: "var(--text-muted)" }}>
+      <p className="mt-2 text-center text-sm text-[#706a61]">
         Need to verify your account?{" "}
-        <Link href="/verify" className="font-bold" style={{ color: "var(--accent-cyan)" }}>
+        <Link href="/verify" className="font-bold text-[#5865f2] transition hover:text-[#4651d4]">
           Verify email
         </Link>
       </p>

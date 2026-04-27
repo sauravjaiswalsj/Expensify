@@ -1,8 +1,8 @@
-# Expensify.ai - Backend Features Documentation
+# Rivo - Backend Features Documentation
 
 ## Overview
 
-Expensify.ai Backend is a comprehensive **Spring Boot REST API** designed to manage user authentication and expense tracking. Built with security, scalability, and reliability in mind, it uses **MongoDB** for data persistence and **JWT** for secure token-based authentication.
+Rivo Backend is a comprehensive **Spring Boot REST API** designed to manage user authentication and expense tracking. Built with security, scalability, and reliability in mind, it uses **MongoDB** for data persistence and **JWT** for secure token-based authentication.
 
 ---
 
@@ -352,4 +352,3 @@ Comprehensive exception handling with specific error scenarios:
 
 **Last Updated:** April 26, 2026  
 **Version:** 1.0 - MVP Release
-

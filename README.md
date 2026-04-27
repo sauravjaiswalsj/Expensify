@@ -1,7 +1,7 @@
 
-# Expensify.ai — Overview & Highlights
+# Rivo - Overview & Highlights
 
-Expensify.ai is a full-stack expense tracker built to showcase advanced backend engineering and practical AI integration. Designed for scalability, security, and real-world impact, this project demonstrates expertise in Spring Boot, MongoDB, and modern authentication, with a special focus on AI-powered features.
+Rivo is a full-stack expense tracker built to showcase advanced backend engineering and practical AI integration. Designed for scalability, security, and real-world impact, this project demonstrates expertise in Spring Boot, MongoDB, and modern authentication, with a special focus on AI-powered features.
 
 ---
 
@@ -19,7 +19,7 @@ Expensify.ai is a full-stack expense tracker built to showcase advanced backend 
 
 ## Services and Extensibility
 
-Expensify.ai is engineered for AI augmentation:
+Rivo is engineered for AI augmentation:
 - **ExpenseService** and **DTO Mappers** are structured to support ML model integration for categorization and anomaly detection.
 - **Validation** and **Business Logic** layers are ready for AI-powered recommendations and fraud checks.
 - **EmailService** is designed for personalized, AI-driven notifications.
@@ -41,8 +41,8 @@ Expensify.ai is engineered for AI augmentation:
 ## Quickstart
 1. **Clone & Setup**
 	```bash
-	git clone https://github.com/sauravjaiswalsj/Expensify.git
-	cd Expensify
+	git clone https://github.com/sauravjaiswalsj/rivo.git
+	cd rivo
 	mvn clean install
 	mvn spring-boot:run
 	```

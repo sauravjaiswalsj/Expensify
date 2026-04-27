@@ -11,7 +11,8 @@ import type {
 
 const configuredBaseUrl = (process.env.NEXT_PUBLIC_API_URL || "").trim();
 const BASE_URL = configuredBaseUrl || "/api";
-export const AUTH_EXPIRED_EVENT = "expensify:auth-expired";
+export const AUTH_EXPIRED_EVENT = "rivo:auth-expired";
+export const AUTH_EXPIRED_STORAGE_KEY = "rivo-session-expired";
 
 function buildUrl(path: string): string {
   const normalizedBase = BASE_URL.endsWith("/") ? BASE_URL.slice(0, -1) : BASE_URL;
@@ -59,7 +60,7 @@ export function removeStoredUsername(): void {
 function clearStoredAuth(): void {
   removeToken();
   removeStoredUsername();
-  storage()?.removeItem("expensify-profile");
+  storage()?.removeItem("rivo-profile");
 }
 
 function isAuthEndpoint(path: string): boolean {
@@ -70,6 +71,9 @@ function handleExpiredAuth(path: string, status: number): void {
   const token = getToken();
   if (!token || status !== 401 || isAuthEndpoint(path)) return;
 
+  if (typeof window !== "undefined") {
+    window.sessionStorage.setItem(AUTH_EXPIRED_STORAGE_KEY, "true");
+  }
   clearStoredAuth();
   if (typeof window !== "undefined") {
     window.dispatchEvent(new Event(AUTH_EXPIRED_EVENT));

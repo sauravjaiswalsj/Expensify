@@ -126,12 +126,12 @@ export default function AddExpensePage() {
       });
 
       localStorage.removeItem(DRAFT_STORAGE_KEY);
-      await refreshExpenses();
       setForm(getInitialForm());
       setReceiptName("");
       setTagInput("");
       setBanner("Expense recorded successfully.", "success");
       router.push("/dashboard");
+      void refreshExpenses();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to add expense";
       if (msg.includes("401")) {

@@ -3,6 +3,7 @@
 import { useState, type FormEvent, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Eye, EyeOff, KeyRound, LockKeyhole, User } from "lucide-react";
 import { authApi } from "@/lib/api";
 
 const PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
@@ -62,39 +63,47 @@ function ResetForm() {
 
   return (
     <>
-      <h2 className="text-[22px] font-bold text-slate-900 mb-1">Reset password</h2>
-      <p className="text-sm text-slate-500 mb-6">
-        Enter your reset code and choose a new password
-      </p>
+      <div className="mb-7">
+        <p className="text-sm font-bold uppercase tracking-[0.12em] text-[#5865f2]">Set new credentials</p>
+        <h2 className="mt-3 text-3xl font-semibold tracking-normal text-[#2b2a27]">Create a new password</h2>
+        <p className="mt-2 text-sm leading-6 text-[#6f685f]">
+          Use your reset code to secure your Rivo workspace.
+        </p>
+      </div>
 
       {error && (
-        <div className="mb-4 px-4 py-3 rounded-lg bg-red-50 border border-red-100 text-red-600 text-sm">
+        <div className="mb-4 rounded-[10px] border border-[#f1c7c2] bg-[#fff1ef] px-4 py-3 text-sm text-[#b42318]">
           {error}
         </div>
       )}
       {success && (
-        <div className="mb-4 px-4 py-3 rounded-lg bg-green-50 border border-green-100 text-green-600 text-sm">
+        <div className="mb-4 rounded-[10px] border border-[#b7dfcc] bg-[#effaf4] px-4 py-3 text-sm text-[#087f5b]">
           {success}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-5">
         <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Username</label>
+          <label className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-[#716b62]">Username</label>
+          <div className="relative">
+            <User className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9a948b]" />
           <input
-            className="w-full px-4 py-2.5 rounded-lg text-sm bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-colors"
+            className="h-12 w-full rounded-[10px] border border-[#d9d5cc] bg-white px-11 text-sm text-[#2b2a27] outline-none transition placeholder:text-[#9a948b] focus:border-[#5865f2] focus:ring-4 focus:ring-[#5865f2]/10"
             type="text"
             placeholder="your_username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
           />
+          </div>
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Reset code</label>
+          <label className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-[#716b62]">Reset code</label>
+          <div className="relative">
+            <KeyRound className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9a948b]" />
           <input
-            className="w-full px-4 py-2.5 rounded-lg bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-colors text-center tracking-[0.5em] text-lg font-mono"
+            className="h-12 w-full rounded-[10px] border border-[#d9d5cc] bg-white px-11 text-center font-mono text-lg tracking-[0.45em] text-[#2b2a27] outline-none transition placeholder:text-[#9a948b] focus:border-[#5865f2] focus:ring-4 focus:ring-[#5865f2]/10"
             type="text"
             placeholder="000000"
             value={code}
@@ -102,13 +111,15 @@ function ResetForm() {
             maxLength={6}
             required
           />
+          </div>
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-1.5">New password</label>
+          <label className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-[#716b62]">New password</label>
           <div className="relative">
+            <LockKeyhole className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9a948b]" />
             <input
-              className="w-full pl-4 pr-10 py-2.5 rounded-lg text-sm bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-colors"
+              className="h-12 w-full rounded-[10px] border border-[#d9d5cc] bg-white px-11 text-sm text-[#2b2a27] outline-none transition placeholder:text-[#9a948b] focus:border-[#5865f2] focus:ring-4 focus:ring-[#5865f2]/10"
               type={showPassword ? "text" : "password"}
               placeholder="••••••••"
               value={password}
@@ -118,25 +129,23 @@ function ResetForm() {
             />
             <button
               type="button"
-              className="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-slate-600"
+              className="absolute inset-y-0 right-3 flex items-center text-[#8a8379] transition hover:text-[#5865f2]"
               onClick={() => setShowPassword((v) => !v)}
               tabIndex={-1}
+              aria-label={showPassword ? "Hide password" : "Show password"}
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-              </svg>
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
-            Min 8 chars · 1 uppercase · 1 number · 1 special character
+          <p className="mt-1 text-xs text-[#8a8379]">
+            Min 8 chars, 1 uppercase, 1 number, and 1 special character.
           </p>
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-1.5">Confirm new password</label>
+          <label className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-[#716b62]">Confirm new password</label>
           <input
-            className="w-full px-4 py-2.5 rounded-lg text-sm bg-white border border-slate-200 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-colors"
+            className="h-12 w-full rounded-[10px] border border-[#d9d5cc] bg-white px-4 text-sm text-[#2b2a27] outline-none transition placeholder:text-[#9a948b] focus:border-[#5865f2] focus:ring-4 focus:ring-[#5865f2]/10"
             type={showPassword ? "text" : "password"}
             placeholder="••••••••"
             value={confirmPassword}
@@ -146,14 +155,14 @@ function ResetForm() {
           />
         </div>
 
-        <button type="submit" className="w-full bg-[#0284c7] hover:bg-[#0369a1] text-white py-2.5 px-4 rounded-lg text-sm font-medium transition-colors" disabled={loading}>
+        <button type="submit" className="h-12 w-full rounded-[10px] bg-[#5865f2] px-4 text-sm font-bold text-white shadow-[0_14px_30px_rgba(88,101,242,0.24)] transition hover:bg-[#4c58df] disabled:cursor-not-allowed disabled:opacity-60" disabled={loading}>
           {loading ? "Resetting…" : "Reset password"}
         </button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-slate-500">
+      <p className="mt-7 text-center text-sm text-[#706a61]">
         Back to{" "}
-        <Link href="/login" className="text-sky-600 hover:text-sky-700 font-bold">
+        <Link href="/login" className="font-bold text-[#5865f2] transition hover:text-[#4651d4]">
           Sign in
         </Link>
       </p>

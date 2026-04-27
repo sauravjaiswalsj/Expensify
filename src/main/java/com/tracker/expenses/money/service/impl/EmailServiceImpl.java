@@ -92,7 +92,7 @@ public class EmailServiceImpl implements EmailService {
 
         emailSender(to, subject, body);
     }
-    private String welcomeSubject = "🎉 Welcome to Expensify.ai";
+    private String welcomeSubject = "🎉 Welcome to Rivo";
 
     private String welcomeBody = """
 <html>
@@ -108,14 +108,14 @@ public class EmailServiceImpl implements EmailService {
           <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); overflow: hidden;">
             <tr>
               <td style="background-color: #4f46e5; padding: 30px 0; text-align: center;">
-                <h1 style="color: #ffffff; margin: 0; font-size: 32px;">Welcome to Expensify.ai</h1>
+                <h1 style="color: #ffffff; margin: 0; font-size: 32px;">Welcome to Rivo</h1>
                 <p style="color: #e0e7ff; font-size: 16px; margin-top: 10px;">Your personal expense tracker</p>
               </td>
             </tr>
             <tr>
               <td style="padding: 30px 40px;">
                 <p style="font-size: 16px; color: #333333; line-height: 1.6;">
-                  We're thrilled to have you here! At <strong>Expensify.ai</strong>, we're on a mission to help you take full control of your finances with ease and elegance.
+                  We're thrilled to have you here! At <strong>Rivo</strong>, we're on a mission to help you take full control of your finances with ease and elegance.
                 </p>
                 <p style="font-size: 16px; color: #333333; line-height: 1.6;">
                   With your new account, you can:
@@ -126,18 +126,18 @@ public class EmailServiceImpl implements EmailService {
                     <li>&#x1F512; Keep your data secure and private</li>
                 </ul>
                 <p style="text-align: center; margin: 40px 0;">
-                  <a href="https://Expensify.ai.com/dashboard" style="background-color: #4f46e5; color: #ffffff; padding: 14px 28px; border-radius: 6px; text-decoration: none; font-size: 16px; font-weight: bold;">
+                  <a href="https://rivo.ai/dashboard" style="background-color: #4f46e5; color: #ffffff; padding: 14px 28px; border-radius: 6px; text-decoration: none; font-size: 16px; font-weight: bold;">
                     Go to Dashboard \uD83C\uDF89.
                   </a>
                 </p>
                 <p style="font-size: 14px; color: #666666; text-align: center;">
-                  Questions? Reach us at <a href="mailto:support@Expensify.ai.com" style="color: #4f46e5;">support@Expensify.ai.com</a>
+                  Questions? Reach us at <a href="mailto:support@rivo.ai" style="color: #4f46e5;">support@rivo.ai</a>
                 </p>
               </td>
             </tr>
             <tr>
               <td style="background-color: #f1f5f9; padding: 20px; text-align: center; font-size: 12px; color: #999999;">
-                © 2025 Expensify.ai Inc. All rights reserved.
+                © 2025 Rivo Inc. All rights reserved.
               </td>
             </tr>
           </table>
@@ -148,7 +148,7 @@ public class EmailServiceImpl implements EmailService {
 </html>
 """;
 
-    String verifySubject = "\uD83D\uDD10 Verify Your Email - Expensify.ai";
+    String verifySubject = "\uD83D\uDD10 Verify Your Email - Rivo";
 
     String verifyEmailBodyByCode = """
 <html>
@@ -185,7 +185,7 @@ public class EmailServiceImpl implements EmailService {
             </tr>
             <tr>
               <td style="background-color: #f1f5f9; padding: 20px; text-align: center; font-size: 12px; color: #999999;">
-                © 2025 Expensify.ai Inc. All rights reserved.
+                © 2025 Rivo Inc. All rights reserved.
               </td>
             </tr>
           </table>
@@ -217,10 +217,10 @@ public class EmailServiceImpl implements EmailService {
             <tr>
               <td style="padding: 30px 40px;">
                 <p style="font-size: 16px; color: #333333; line-height: 1.6;">
-                  To complete your registration with <strong>Expensify.ai</strong>, please confirm your email address by clicking the button below.
+                  To complete your registration with <strong>Rivo</strong>, please confirm your email address by clicking the button below.
                 </p>
                 <p style="text-align: center; margin: 40px 0;">
-                  <a href="https://Expensify.ai.com/verify?token=YOUR_VERIFICATION_TOKEN" 
+                  <a href="https://rivo.ai/verify?token=YOUR_VERIFICATION_TOKEN" 
                      style="background-color: #22c55e; 
                             color: #ffffff; 
                             padding: 14px 28px; 
@@ -233,8 +233,8 @@ public class EmailServiceImpl implements EmailService {
                 </p>
                 <p style="font-size: 14px; color: #666666; text-align: center; line-height: 1.6;">
                   If the button doesn’t work, copy and paste this link into your browser:<br>
-                  <a href="https://ai.expensify.com/verify?token=YOUR_VERIFICATION_TOKEN" style="color: #4f46e5;">
-                    https://ai.expensify.com/verify?token=YOUR_VERIFICATION_TOKEN
+                  <a href="https://rivo.ai/verify?token=YOUR_VERIFICATION_TOKEN" style="color: #4f46e5;">
+                    https://rivo.ai/verify?token=YOUR_VERIFICATION_TOKEN
                   </a>
                 </p>
                 <p style="font-size: 14px; color: #999999; text-align: center; margin-top: 40px;">
@@ -244,7 +244,7 @@ public class EmailServiceImpl implements EmailService {
             </tr>
             <tr>
               <td style="background-color: #f1f5f9; padding: 20px; text-align: center; font-size: 12px; color: #999999;">
-                © 2025 Expensify.ai Inc. All rights reserved.
+                © 2025 Rivo Inc. All rights reserved.
               </td>
             </tr>
           </table>
@@ -270,19 +270,19 @@ public class EmailServiceImpl implements EmailService {
                             <tr>
                               <td style="background-color: #4f46e5; padding: 30px 0; text-align: center;">
                                 <h1 style="color: #ffffff; margin: 0; font-size: 28px;">{{contentHeader}}</h1>
-                                <p style="color: #e0e7ff; font-size: 16px; margin-top: 10px;">Welcome to Expensify.ai!</p>
+                                <p style="color: #e0e7ff; font-size: 16px; margin-top: 10px;">Welcome to Rivo!</p>
                               </td>
                             </tr>
                             <tr>
                               <td style="padding: 40px 40px;">
                                 <p style="font-size: 16px; color: #333333; line-height: 1.6; text-align: center;">
-                                  {{content}} Please login now to enjoy all the features of Expensify.ai.
+                                  {{content}} Please login now to enjoy all the features of Rivo.
                                 </p>
                               </td>
                             </tr>
                             <tr>
                               <td style="background-color: #f1f5f9; padding: 20px; text-align: center; font-size: 12px; color: #999999;">
-                                © 2025 Expensify.ai Inc. All rights reserved.
+                                © 2025 Rivo Inc. All rights reserved.
                               </td>
                             </tr>
                           </table>

@@ -1,4 +1,4 @@
- :# Expensify - Feature-wise TODO Roadmap
+ :# Rivo - Feature-wise TODO Roadmap
 
 This file tracks **what to build next**, grouped by feature area, with optional **AI integrations** for each.
 
@@ -162,4 +162,3 @@ A low-risk AI slice you can ship quickly:
 - [ ] UI shows clear success/error states.
 - [ ] Logs/metrics added for observability.
 - [ ] Security review completed for auth/data impact.
-

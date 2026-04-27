@@ -25,7 +25,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     try {
-      const stored = localStorage.getItem("expensify-theme") as Theme | null;
+      const stored = localStorage.getItem("rivo-theme") as Theme | null;
       if (stored === "light" || stored === "dark") {
         setTheme(stored);
       }
@@ -40,7 +40,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const root = document.documentElement;
     root.setAttribute("data-theme", theme);
     try {
-      localStorage.setItem("expensify-theme", theme);
+      localStorage.setItem("rivo-theme", theme);
     } catch {
       // ignore
     }

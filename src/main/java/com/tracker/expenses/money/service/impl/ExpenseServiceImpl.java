@@ -4,7 +4,6 @@ import com.tracker.expenses.money.dto.Response;
 import com.tracker.expenses.money.dto.ResponseHeader;
 import com.tracker.expenses.money.exception.InvalidExpenseException;
 import com.tracker.expenses.money.model.Expense;
-import com.tracker.expenses.money.model.User;
 import com.tracker.expenses.money.repository.ExpenseRepository;
 import com.tracker.expenses.money.service.ExpenseService;
 import lombok.extern.slf4j.Slf4j;
@@ -24,15 +23,14 @@ public class ExpenseServiceImpl implements ExpenseService {
     @Autowired
     private ExpenseRepository expenseRepository;
 
-
-    @Autowired
-    private UserServiceImpl userService;
-
     @Override
     @Transactional
     public Response<ResponseHeader, Expense> addExpense(Expense expense){
         try{
-            User user = userService.findByUsername(expense.getUsername());
+            if (expense.getUsername() == null || expense.getUsername().isBlank()) {
+                throw new InvalidExpenseException("Username is required");
+            }
+            expense.setUsername(expense.getUsername().trim().toLowerCase(Locale.ROOT));
             if (expense.getDate() == null) {
                 expense.setDate(convertLocalDateTimeToDate());
             }
@@ -40,8 +38,6 @@ public class ExpenseServiceImpl implements ExpenseService {
             expense.setUpdatedAt(convertLocalDateTimeToDate());
 
             Expense exp = expenseRepository.save(expense);
-            user.getExpenses().add(exp);
-            userService.updateUser(user);
             return new Response<>(new ResponseHeader(HttpStatus.CREATED, "Expense added successfully"), exp);
         }catch (InvalidExpenseException e){
             return new Response<>(new ResponseHeader(HttpStatus.CONFLICT, e.getMessage()), expense);
@@ -55,20 +51,8 @@ public class ExpenseServiceImpl implements ExpenseService {
     public Response<ResponseHeader, List<Expense>> getExpenseByUserId(String userId) {
         try {
             log.info("Getting expenses for user: {}", userId);
-            String username = userId.toLowerCase();
-            
-            // Verify user exists
-            User user = userService.findByUsername(username);
-            if (user == null) {
-                throw new InvalidExpenseException("User not found: " + userId);
-            }
-            
-            // Fetch expenses by username
+            String username = userId.trim().toLowerCase(Locale.ROOT);
             List<Expense> expenseList = expenseRepository.findByUsername(username);
-
-            if (expenseList.isEmpty()) {
-                throw new InvalidExpenseException("No expenses found for user " + user.getFirstName() + " " + user.getLastName());
-            }
 
             log.info("Found {} expenses for user: {}", expenseList.size(), username);
             return new Response<>(new ResponseHeader(HttpStatus.OK, "Expenses retrieved successfully"), expenseList);
@@ -107,6 +91,46 @@ public class ExpenseServiceImpl implements ExpenseService {
             return new Response<>(new ResponseHeader(HttpStatus.NOT_FOUND, e.getMessage()), expense);
         } catch (Exception ex) {
             log.error("Unexpected error deleting expense", ex);
+            return new Response<>(new ResponseHeader(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage()), expense);
+        }
+    }
+
+    @Override
+    @Transactional
+    public Response<ResponseHeader, Expense> updateExpense(Expense expense, String username) {
+        try {
+            if (expense == null || expense.get_id() == null || expense.get_id().isBlank()) {
+                throw new InvalidExpenseException("Expense id is required");
+            }
+            if (username == null || username.isBlank()) {
+                throw new InvalidExpenseException("Username is required");
+            }
+            if (expense.getAmount() <= 0) {
+                throw new InvalidExpenseException("Expense amount is invalid");
+            }
+
+            String normalizedUsername = username.trim().toLowerCase(Locale.ROOT);
+            Expense existingExpense = expenseRepository
+                    .findByIdAndUsername(expense.get_id(), normalizedUsername)
+                    .orElseThrow(() -> new InvalidExpenseException("Expense not found for user"));
+
+            existingExpense.setAmount(expense.getAmount());
+            existingExpense.setCategory(expense.getCategory());
+            existingExpense.setDescription(expense.getDescription());
+            existingExpense.setPaymentType(expense.getPaymentType());
+            existingExpense.setCurrency(expense.getCurrency());
+            existingExpense.setDate(expense.getDate());
+            existingExpense.setUpdatedAt(convertLocalDateTimeToDate());
+
+            Expense updatedExpense = expenseRepository.save(existingExpense);
+            log.info("Updated expense {} for user: {}", updatedExpense.get_id(), normalizedUsername);
+            return new Response<>(new ResponseHeader(HttpStatus.OK, "Expense updated successfully"), updatedExpense);
+        }
+        catch (InvalidExpenseException e){
+            log.warn("Error updating expense: {}", e.getMessage());
+            return new Response<>(new ResponseHeader(HttpStatus.NOT_FOUND, e.getMessage()), expense);
+        } catch (Exception ex) {
+            log.error("Unexpected error updating expense", ex);
             return new Response<>(new ResponseHeader(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage()), expense);
         }
     }
