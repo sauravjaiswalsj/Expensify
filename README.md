@@ -1,128 +1,270 @@
+# Rivo
 
-# Rivo - Overview & Highlights
+Rivo is a full-stack personal finance platform built around production backend engineering patterns: secure authentication, ownership-scoped expense management, asynchronous workflows, observable services, and an event-driven architecture roadmap.
 
-Rivo is a full-stack expense tracker built to showcase advanced backend engineering and practical AI integration. Designed for scalability, security, and real-world impact, this project demonstrates expertise in Spring Boot, MongoDB, and modern authentication, with a special focus on AI-powered features.
+The current codebase contains a Spring Boot API, MongoDB persistence, JWT authentication, email verification, password reset, a Next.js client, Docker packaging, and CI/CD deployment configuration. The next architecture evolution is documented in [ARCHITECTURE.md](ARCHITECTURE.md): async command APIs, transactional outbox, LogStore-backed event history, worker services, Redis coordination, circuit breakers, and Prometheus/Grafana observability.
 
----
+## Why This Project Exists
 
-## Features
-- **Production-Ready Architecture**: Clean separation of concerns, robust error handling, and scalable data models.
-- **Enterprise Security**: JWT authentication, BCrypt password hashing, and role-based access control.
-- **AI Integration**: (Highlight) The project includes AI-driven modules for:
-  - **Smart Expense Categorization**: (Pluggable) Ready for ML models to auto-categorize expenses based on description and user history.
-  - **Anomaly Detection**: (Extensible) Framework for flagging suspicious transactions using AI/ML algorithms.
-  - **Intelligent Notifications**: (Configurable) Email and alerting logic designed for future AI-powered recommendations.
-- **API-First Design**: RESTful endpoints, DTOs, and Swagger/OpenAPI for easy integration and testing.
-- **Team Collaboration**: Clear code style, modular services, and documented business logic for rapid onboarding.
+Rivo is intentionally more than a CRUD expense tracker. The system is being shaped as a fintech-style backend where common production concerns are first-class:
 
----
+- secure identity and account verification
+- ownership-enforced expense operations
+- async command processing for slow or failure-prone workflows
+- immutable audit/event history through LogStore
+- idempotency for retry-safe writes
+- distributed rate limiting
+- circuit breakers around external dependencies
+- metrics, logs, health checks, SLOs, and alerting
+- documented architectural tradeoffs
 
-## Services and Extensibility
+## Engineering Principles
 
-Rivo is engineered for AI augmentation:
-- **ExpenseService** and **DTO Mappers** are structured to support ML model integration for categorization and anomaly detection.
-- **Validation** and **Business Logic** layers are ready for AI-powered recommendations and fraud checks.
-- **EmailService** is designed for personalized, AI-driven notifications.
-- **OpenAPI Docs** make it easy to plug in external AI services.
+Rivo is designed around software engineering principles that matter in production systems, not only feature delivery:
 
-> **Note:** While the current repo provides the scaffolding and integration points for AI, the architecture is ready for rapid deployment of custom ML models (TensorFlow, PyTorch, etc.) and cloud AI APIs.
+- **Domain-driven boundaries** - authentication, expenses, audit, notifications, analytics, and operations are treated as separate capabilities with clear ownership.
+- **CQRS-lite** - write flows are modeled as commands that change state, while read flows query current state or derived projections such as audit logs, alerts, and future analytics views.
+- **Event-driven architecture** - important business actions emit domain events so side effects like email, audit logging, AI categorisation, and anomaly detection can run asynchronously.
+- **Transactional outbox** - business writes and event intent are persisted together, avoiding lost events when downstream systems fail.
+- **Idempotency by design** - retryable write APIs use idempotency keys so client retries do not create duplicate expenses or duplicate side effects.
+- **At-least-once delivery with idempotent consumers** - workers assume events may be delivered more than once and protect handlers with event IDs, operation IDs, or processed-event records.
+- **Fail-fast at the boundary, degrade gracefully inside the system** - invalid commands are rejected early, while external provider failures use retries, circuit breakers, fallbacks, and dead-lettering.
+- **Observability-first engineering** - metrics, structured logs, correlation IDs, health checks, dashboards, and SLOs are part of the architecture rather than afterthoughts.
+- **Security and ownership enforcement** - every protected operation is scoped to the authenticated principal, with a future path to organisation-scoped authorization.
+- **Evolutionary architecture** - the system starts as a modular monolith and introduces deployable service boundaries only where latency, scaling, or failure isolation justify it.
 
----
+## Design Patterns and Architectural Concepts
 
-## Technical Highlights
-- **Spring Boot 3.x**: Modern backend framework, REST API, security, and data access.
-- **MongoDB**: NoSQL database for flexible, scalable storage.
-- **JWT & BCrypt**: Secure, stateless authentication and password management.
-- **Swagger/OpenAPI**: Interactive API documentation for recruiters and engineers.
-- **Maven & JUnit**: Enterprise build and test pipeline.
+Rivo's target architecture intentionally uses patterns seen in real production business systems:
 
----
+| Pattern | How Rivo Uses It |
+|---|---|
+| CQRS-lite | Commands accept writes asynchronously; queries read current state and projections. |
+| Transactional Outbox | MongoDB stores business changes and pending events in one transaction boundary. |
+| Worker Service | `rivo-worker` processes email, audit, AI, and alert workflows outside the API request path. |
+| Event Log | LogStore stores immutable domain events for audit, replay, and debugging. |
+| Idempotency Key | Repeated client submissions return the same operation instead of duplicating writes. |
+| Circuit Breaker | Resilience4j protects email and AI providers from cascading failures. |
+| Retry with Backoff | Temporary failures are retried without blocking user-facing requests. |
+| Dead Letter Queue | Exhausted events are preserved for inspection and manual replay. |
+| Projection | Workers build read-optimized views such as audit logs, alerts, and future analytics summaries. |
+| Distributed Rate Limiting | Redis-backed token buckets protect auth and write endpoints across app instances. |
+| Correlation ID | Logs, metrics, operations, and events can be traced across API and worker flows. |
+| SLO and Error Budget | Reliability is measured through explicit latency, availability, and event-processing targets. |
 
-## Quickstart
-1. **Clone & Setup**
-	```bash
-	git clone https://github.com/sauravjaiswalsj/rivo.git
-	cd rivo
-	mvn clean install
-	mvn spring-boot:run
-	```
-2. **Configure MongoDB**
-	- Set your MongoDB URI in `application.properties` or as an environment variable.
-3. **Explore API**
-	- Visit `http://localhost:8080/swagger-ui.html` for live API docs.
+## Multi-Tenant Design Readiness
 
----
+Rivo currently focuses on personal finance, but the architecture is being kept compatible with a future small-business version. That means avoiding personal-only assumptions in event names and service boundaries, and leaving a clean path to introduce:
 
-## Key Endpoints
-- `POST /api/auth/register` — Register new user
-- `POST /api/auth/login` — Login and receive JWT
-- `POST /api/expense/add` — Add new expense (AI-ready categorization)
-- `GET /api/expense/list` — List user expenses (supports future AI filtering)
+- `Organisation` and `Membership` models
+- role-based organisation access such as owner, admin, finance manager, and viewer
+- organisation-scoped expenses, vendors, departments, liabilities, and analytics
+- tenant-aware indexes and authorization checks
+- per-tenant audit streams in LogStore
+- per-tenant SLO and usage metrics
 
----
+This future direction is documented as architectural readiness, not current product scope.
 
-## Data Model (AI-Ready)
+## Current Capabilities
 
-### User
-```java
-public class User {
-	 private String id;
-	 private String username;
-	 private String email;
-	 private String password;
-	 private Role role; // USER, ADMIN
-	 private String verificationCode;
-	 private List<Expense> expenses;
-	 // ...other fields
-}
+- User registration with username, email, and password validation
+- Email verification before login
+- Password reset using verification codes
+- JWT-based authentication
+- BCrypt password hashing, including legacy plaintext password migration on login
+- Authenticated expense create, update, delete, and list flows
+- User-scoped expense access so users cannot mutate another user's records
+- MongoDB persistence with indexed username and email fields
+- Spring Boot Actuator dependency included for operational endpoints
+- Swagger/OpenAPI UI dependency included for API exploration
+- Next.js frontend under `client/`
+- Dockerfile for backend packaging
+- GitHub Actions workflow for Azure deployment
+- JUnit/Mockito tests for authentication service behavior
+
+## Target Architecture
+
+The intended staff-level architecture is an asynchronous, event-driven backend:
+
+```mermaid
+flowchart TB
+    FE["Next.js Frontend"]
+
+    subgraph API["rivo-api"]
+        AsyncAPI["Async Command API<br/>202 Accepted"]
+        StatusAPI["Operation Status API"]
+        Auth["JWT Auth + BCrypt"]
+        RateLimit["Redis Rate Limiter"]
+        Idempotency["Redis Idempotency Keys"]
+        Correlation["Correlation ID Filter"]
+    end
+
+    subgraph Data["State and Coordination"]
+        Mongo[("MongoDB<br/>Users, Expenses, Operations, Outbox")]
+        Redis[("Redis<br/>Rate limits, cache, idempotency")]
+    end
+
+    subgraph Events["Event Backbone"]
+        Outbox[("Transactional Outbox")]
+        Publisher["Outbox Publisher"]
+        LogStore["LogStore<br/>Append-only distributed event log"]
+    end
+
+    subgraph Worker["rivo-worker"]
+        EmailWorker["Email Consumer"]
+        AuditWorker["Audit Consumer"]
+        AIWorker["AI Categorisation Consumer"]
+        AlertWorker["Anomaly Alert Consumer"]
+    end
+
+    subgraph External["External Services"]
+        Email["Email Provider"]
+        AI["LLM Provider"]
+    end
+
+    subgraph Observability["Observability"]
+        Prometheus["Prometheus"]
+        Grafana["Grafana"]
+        Logs["Structured JSON Logs"]
+        SLO["SLOs + Burn-rate Alerts"]
+    end
+
+    FE --> AsyncAPI
+    FE --> StatusAPI
+    AsyncAPI --> Correlation --> Auth --> RateLimit --> Idempotency
+    Idempotency --> Mongo
+    AsyncAPI --> Outbox
+    Mongo --> Redis
+    Outbox --> Publisher --> LogStore
+    LogStore --> EmailWorker
+    LogStore --> AuditWorker
+    LogStore --> AIWorker
+    LogStore --> AlertWorker
+    EmailWorker --> Email
+    AIWorker --> AI
+    API --> Prometheus
+    Worker --> Prometheus
+    Prometheus --> Grafana
+    Logs --> Grafana
+    Prometheus --> SLO
 ```
 
-### Expense
-```java
-public class Expense {
-	 private String id;
-	 private BigDecimal amount;
-	 private String category; // AI-driven auto-categorization ready
-	 private String description;
-	 private String paymentType;
-	 private LocalDate date;
-	 private String currency;
-	 // ...other fields
-}
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the full design, async API contracts, event types, reliability model, observability plan, and implementation phases.
+
+## Tech Stack
+
+### Backend
+
+- Java 17
+- Spring Boot 3.4.3
+- Spring Web
+- Spring Security
+- Spring Data MongoDB
+- Spring Validation
+- Spring Boot Actuator
+- Spring Mail
+- Spring OAuth2 Client
+- Maven
+- Lombok
+- JJWT 0.11.5
+- Springdoc OpenAPI / Swagger UI
+- JUnit 5
+- Mockito
+- Spring Security Test
+
+### Frontend
+
+- Next.js 16
+- React 19
+- TypeScript 5
+- Tailwind CSS 3
+- Lucide React
+- ESLint
+- PostCSS / Autoprefixer
+
+### Infrastructure
+
+- MongoDB
+- Docker
+- GitHub Actions
+- Azure deployment workflow
+
+### Planned Production Libraries and Services
+
+- Redis for distributed rate limiting, idempotency keys, and caching
+- Resilience4j for circuit breakers, timeouts, retries, and fallbacks
+- Micrometer Prometheus registry for metrics export
+- Prometheus for metrics collection
+- Grafana for dashboards
+- LogStore as the append-only distributed event log
+- OpenAI or Ollama for AI expense categorisation
+- Testcontainers for integration tests
+- Structured JSON logging with request correlation IDs
+
+## API Surface
+
+Current backend endpoints include:
+
+- `POST /auth/signup` - create a user account
+- `POST /auth/login` - authenticate and receive a JWT
+- `POST /auth/verify` - verify a user account
+- `POST /auth/resend` - resend verification code
+- `POST /auth/forget` - request password reset
+- `POST /auth/forget/newPassword` - complete password reset
+- `POST /add` - create an expense
+- `PUT /update` - update an expense
+- `DELETE /remove` - delete an expense
+- `GET /expenses` - list authenticated user's expenses
+
+Target async APIs:
+
+- `POST /api/expenses` - accept expense creation command, return `202 Accepted`
+- `PUT /api/expenses/{id}` - accept expense update command
+- `DELETE /api/expenses/{id}` - accept expense deletion command
+- `GET /api/operations/{operationId}` - check async operation status
+- `GET /api/operations/{operationId}/events` - stream operation updates through SSE
+- `GET /api/audit` - cursor-paginated audit view
+
+## Reliability Roadmap
+
+The next major backend iteration focuses on:
+
+1. Transactional outbox for reliable event publishing
+2. Separate `rivo-worker` service for async side effects
+3. LogStore integration for immutable domain events and replay
+4. Redis-backed idempotency keys on write commands
+5. Redis-backed distributed rate limiting
+6. Resilience4j circuit breakers around email and AI providers
+7. Audit log projection from domain events
+8. AI categorisation with rule-based fallback
+9. Prometheus metrics and Grafana dashboards
+10. `SLO.md` with availability, latency, and event-processing targets
+
+## Running Locally
+
+Backend:
+
+```bash
+mvn clean install
+mvn spring-boot:run
 ```
 
----
+Frontend:
 
-## Security & Compliance
-- **JWT**: Issued on login, required for protected endpoints.
-- **Password Hashing**: BCrypt used for all passwords.
-- **Email Verification**: Users must verify email before login.
-- **Role-Based Access**: Admin/user roles enforced.
-- **CORS**: Configured for frontend integration.
+```bash
+cd client
+npm install
+npm run dev
+```
 
----
+Required backend environment variables are documented in `src/main/resources/application-example.yml`.
 
-## Collaboration & Contribution
-- Modular codebase for easy onboarding and feature development.
-- AI modules are pluggable and well-documented for rapid prototyping.
-- Open to contributions in AI, backend, and DevOps.
+## Documentation
 
----
-
-## License
-MIT
-
----
+- [ARCHITECTURE.md](ARCHITECTURE.md) - target async/event-driven architecture
+- [backend.md](backend.md) - current backend feature notes
+- `src/main/resources/application-example.yml` - configuration template
 
 ## Maintainer
-- [Saurav Jaiswal](https://github.com/sauravjaiswalsj)
 
----
-
-## Contact
-For technical interviews, project demos, or AI collaboration, reach out via GitHub or email.
-
----
-
-## Acknowledgements
-- Spring Boot, MongoDB, Swagger, and the open-source community.
+[Saurav Jaiswal](https://github.com/sauravjaiswalsj)
