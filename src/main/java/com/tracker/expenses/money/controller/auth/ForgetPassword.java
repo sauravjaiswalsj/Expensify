@@ -1,5 +1,7 @@
 package com.tracker.expenses.money.controller.auth;
 
+import com.tracker.expenses.money.dto.ApiResponse;
+import com.tracker.expenses.money.dto.ApiResponses;
 import com.tracker.expenses.money.dto.userdto.PasswordResetDTO;
 import com.tracker.expenses.money.exception.UserAlreadyVerifiedException;
 import com.tracker.expenses.money.exception.VerificationCodeExpiredException;
@@ -11,7 +13,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @RequestMapping("/auth")
 @RestController
 public class ForgetPassword {
@@ -19,37 +23,43 @@ public class ForgetPassword {
     private UserService userService;
 
     @PostMapping("/forget")
-    public ResponseEntity<String> forgetPassword(@RequestParam String username) {
+    public ResponseEntity<ApiResponse<Void>> forgetPassword(@RequestParam String username) {
         try{
             var res = userService.forgetUserPassword(username);
-            return ResponseEntity.status(res.getHeader().getHttpResponseStatus()).body(res.getHeader().getResponseMessage());
+            log.info("AUDIT auth.password_reset_requested username={} correlationId={}", username, ApiResponses.correlationId());
+            return ResponseEntity
+                    .status(res.getHeader().getHttpResponseStatus())
+                    .body(ApiResponses.success(res.getHeader().getResponseMessage(), null));
         }catch (UsernameNotFoundException e){
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponses.error("User not found", "USER_NOT_FOUND"));
         }catch (VerificationCodeExpiredException e){
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Verification code expired");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponses.error("Verification code expired", "VERIFICATION_CODE_EXPIRED"));
         }catch (VerificationCodeIncorrectException e){
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Verification code incorrect");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponses.error("Verification code incorrect", "VERIFICATION_CODE_INCORRECT"));
         }catch (UserAlreadyVerifiedException e){
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("User already verified");
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponses.error("User already verified", "USER_ALREADY_VERIFIED"));
         } catch (Exception e){
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Internal server error");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponses.error("Internal server error", "INTERNAL_SERVER_ERROR"));
         }
     }
     @PostMapping("/forget/newPassword")
-    public ResponseEntity<String> verifyForgetPassword(@RequestBody @Valid PasswordResetDTO passwordResetDTO) {
+    public ResponseEntity<ApiResponse<Void>> verifyForgetPassword(@RequestBody @Valid PasswordResetDTO passwordResetDTO) {
         try{
             var res = userService.resetForgetPassword(passwordResetDTO);
-            return ResponseEntity.status(res.getHeader().getHttpResponseStatus()).body(res.getHeader().getResponseMessage());
+            log.info("AUDIT auth.password_reset_completed username={} correlationId={}", passwordResetDTO.getUsername(), ApiResponses.correlationId());
+            return ResponseEntity
+                    .status(res.getHeader().getHttpResponseStatus())
+                    .body(ApiResponses.success(res.getHeader().getResponseMessage(), null));
         }catch (UsernameNotFoundException e){
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponses.error("User not found", "USER_NOT_FOUND"));
         }catch (VerificationCodeExpiredException e){
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Verification code expired");
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponses.error("Verification code expired", "VERIFICATION_CODE_EXPIRED"));
         }catch (VerificationCodeIncorrectException e){
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Verification code incorrect");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponses.error("Verification code incorrect", "VERIFICATION_CODE_INCORRECT"));
         }catch (UserAlreadyVerifiedException e){
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("User already verified");
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(ApiResponses.error("User already verified", "USER_ALREADY_VERIFIED"));
         } catch (Exception e){
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Internal server error");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponses.error("Internal server error", "INTERNAL_SERVER_ERROR"));
         }
     }
 }

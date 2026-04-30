@@ -99,7 +99,7 @@ public class EmailServiceImpl implements EmailService {
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome Email</title>
+    <title>Welcome to Rivo Family</title>
   </head>
   <body style="margin:0; padding:0; background-color:#f4f4f4; font-family: 'Helvetica Neue', sans-serif;">
     <table width="100%%" cellpadding="0" cellspacing="0" style="padding: 40px 0;">

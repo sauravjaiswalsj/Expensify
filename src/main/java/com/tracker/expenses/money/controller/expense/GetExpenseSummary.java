@@ -1,7 +1,10 @@
 package com.tracker.expenses.money.controller.expense;
 
 import com.tracker.expenses.money.controller.Authentication;
+import com.tracker.expenses.money.dto.ApiResponse;
+import com.tracker.expenses.money.dto.ApiResponses;
 import com.tracker.expenses.money.dto.Response;
+import com.tracker.expenses.money.dto.responsedto.ExpenseSummaryDTO;
 import com.tracker.expenses.money.service.ExpenseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -17,16 +20,21 @@ public class GetExpenseSummary {
     private Authentication authentication;
 
     @GetMapping("/expenses/summary")
-    public ResponseEntity<?> getExpenseSummary() {
+    public ResponseEntity<ApiResponse<ExpenseSummaryDTO>> getExpenseSummary() {
         String username = authentication.getCurrentUserName();
 
         if (username == null) {
-            return ResponseEntity.status(401).body(new Response(false, "User Not Authenticated"));
+            return ResponseEntity.status(401).body(ApiResponses.error("User Not Authenticated", "UNAUTHENTICATED"));
         }
 
         var response = expenseService.getExpenseSummaryByUserId(username);
         var httpResponseStatus = response.getHeader().getHttpResponseStatus();
         int code = httpResponseStatus.value();
-        return ResponseEntity.status(code).body(response);
+        if (httpResponseStatus.is2xxSuccessful()) {
+            return ResponseEntity.status(code)
+                    .body(ApiResponses.success(response.getHeader().getResponseMessage(), response.getMethodBody()));
+        }
+        return ResponseEntity.status(code)
+                .body(ApiResponses.error(response.getHeader().getResponseMessage(), "EXPENSE_SUMMARY_FAILED"));
     }
 }

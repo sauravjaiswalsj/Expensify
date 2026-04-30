@@ -6,8 +6,11 @@ import com.tracker.expenses.money.dto.userdto.LoginDTO;
 import com.tracker.expenses.money.dto.userdto.PasswordResetDTO;
 import com.tracker.expenses.money.dto.userdto.UserDTO;
 import com.tracker.expenses.money.dto.userdto.VerifyUserDTO;
+import com.tracker.expenses.money.enums.OutboxStatus;
 import com.tracker.expenses.money.enums.Role;
 import com.tracker.expenses.money.exception.*;
+import com.tracker.expenses.money.model.OutboxEvent;
+import com.tracker.expenses.money.repository.OutboxEventRepository;
 import com.tracker.expenses.money.service.EmailService;
 import com.tracker.expenses.money.service.UserService;
 import com.tracker.expenses.money.dto.Response;
@@ -23,14 +26,13 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronizationAdapter;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import static com.tracker.expenses.money.common.GetCurrentTime.convertLocalDateTimeToDate;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -41,14 +43,17 @@ public class UserServiceImpl implements UserService {
     private EmailService emailService;
     @Autowired
     private PasswordEncoder passwordEncoder;
+    @Autowired
+    private OutboxEventRepository outboxEventRepository;
 
     private void isUserValid(User user) {
-        String username = user.getUsername().toLowerCase();
+        String username = user.getUsername();
         Validation.isUsernameValid(username);
-        if (userRepository.findByUsernameIgnoreCase(username) != null) {
-            throw new UserAlreadyExistsException("User already exists " + username);
-        }
         Validation.isEmailValid(user.getEmail());
+        User existingUser = userRepository.findByUsernameIgnoreCase(username);
+        if ( existingUser != null && existingUser.isAccountVerified()){
+            throw new UserAlreadyExistsException("User with username " + username);
+        }
     }
 
     public User findByUsername(String username) {
@@ -64,44 +69,69 @@ public class UserServiceImpl implements UserService {
         email = email.toLowerCase();
         return userRepository.findByEmail(email);
     }
-
-    @Transactional
-    public Response<ResponseHeader, User> addUser(UserDTO userDTO) {
+    private User buildUser (UserDTO userDTO) {
         User user = new User(
                 userDTO.getUsername(),
                 userDTO.getPassword(),
                 userDTO.getFirstName(),
                 userDTO.getLastName(),
-                userDTO.getEmail());
+                userDTO.getEmail()
+        );
 
-        // Keep identity fields normalized across signup/login lookups.
-        user.setUsername(user.getUsername().toLowerCase());
+        user.setUsername(user.getUsername().trim().toLowerCase());
         user.setEmail(user.getEmail().toLowerCase());
-
-        isUserValid(user);
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
         user.setRole(Role.USER);
         user.setCreatedAt(convertLocalDateTimeToDate());
+        return user;
+
+    }
+    @Transactional
+    public Response<ResponseHeader, User> addUser(UserDTO userDTO) {
+        User user = buildUser(userDTO);
+
+        isUserValid(user);
+
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
         user.setUpdatedAt(convertLocalDateTimeToDate());
         user.setAccountVerified(false);
+
         user.setVerificationCode(GenerateCodes.generateVerificationCode());
         user.setVerificationCodeExpiresAt(LocalDateTime.now().plusMinutes(15));
+
         var res = userRepository.save(user);
-        TransactionSynchronizationManager.registerSynchronization(
-                new TransactionSynchronizationAdapter() {
-                    @Override
-                    public void afterCommit() {
-                        emailService.sendWelcomeEmail(user.getEmail());
-                        emailService.sendVerificationEmail(user.getEmail(), user.getVerificationCode());
-                    }
-                });
-        try {
-            emailService.sendWelcomeEmail(user.getEmail());
-            emailService.sendVerificationEmail(user.getEmail(), user.getVerificationCode());
-        } catch (Exception ex) {
-            log.error("Error sending verification email to user {}", user.getUsername());
-            emailService.sendVerificationEmail(user.getEmail(), user.getVerificationCode());
-        }
+
+        OutboxEvent event = new OutboxEvent();
+        event.setEventType("USER_REGISTERED");
+        event.setAggregateType("USER");
+        event.setAggregateId(res.getId());
+        event.setOutboxStatus(OutboxStatus.PENDING);
+        event.setAttempts(0);
+        event.setMaxAttempts(5);
+        event.setNextAttemptAt(convertLocalDateTimeToDate());
+        event.setCreatedAt(convertLocalDateTimeToDate());
+        event.setUpdatedAt(convertLocalDateTimeToDate());
+        event.setPayload(Map.of(
+                "username", res.getUsername(),
+                "email", res.getEmail(),
+                "verificationCode", res.getVerificationCode()
+        ));
+        outboxEventRepository.save(event);
+
+//        TransactionSynchronizationManager.registerSynchronization(
+//                new TransactionSynchronizationAdapter() {
+//                    @Override
+//                    public void afterCommit() {
+//                        emailService.sendWelcomeEmail(user.getEmail());
+//                        emailService.sendVerificationEmail(user.getEmail(), user.getVerificationCode());
+//                    }
+//                });
+//        try {
+//            emailService.sendWelcomeEmail(user.getEmail());
+//            emailService.sendVerificationEmail(user.getEmail(), user.getVerificationCode());
+//        } catch (Exception ex) {
+//            log.error("Error sending verification email to user {}", user.getUsername());
+//            emailService.sendVerificationEmail(user.getEmail(), user.getVerificationCode());
+//        }
         return new Response<>(new ResponseHeader(HttpStatus.CREATED, "User created successfully"), res);
     }
 

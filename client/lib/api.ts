@@ -84,11 +84,17 @@ function handleExpiredAuth(path: string, status: number): void {
 export class ApiError extends Error {
   constructor(
     public status: number,
-    message: string
+    message: string,
+    public errorCode?: string,
+    public correlationId?: string
   ) {
     super(message);
     this.name = "ApiError";
   }
+}
+
+function unwrapData<T>(response: ApiResponse<T>): T {
+  return (response.data ?? response.methodBody) as T;
 }
 
 async function request<T>(
@@ -120,26 +126,40 @@ async function request<T>(
 
   const text = await response.text();
 
+  let parsed: unknown = undefined;
+  if (text) {
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      parsed = text;
+    }
+  }
+
   if (!response.ok) {
     handleExpiredAuth(path, response.status);
-    throw new ApiError(response.status, text || `Error ${response.status}`);
+    if (parsed && typeof parsed === "object") {
+      const body = parsed as Partial<ApiResponse<unknown>>;
+      throw new ApiError(
+        response.status,
+        body.message || body.header?.responseMessage || `Error ${response.status}`,
+        body.errorCode,
+        body.correlationId
+      );
+    }
+    throw new ApiError(response.status, String(parsed || `Error ${response.status}`));
   }
 
   if (!text) return undefined as T;
 
-  try {
-    return JSON.parse(text) as T;
-  } catch {
-    return text as unknown as T;
-  }
+  return parsed as T;
 }
 
 export const authApi = {
   login: (data: LoginDTO) =>
-    request<LoginResponseDTO>("/auth/login", {
+    request<ApiResponse<LoginResponseDTO>>("/auth/login", {
       method: "POST",
       body: JSON.stringify(data),
-    }),
+    }).then(unwrapData),
 
   signup: (data: UserDTO) =>
     request<ApiResponse<User>>("/auth/signup", {

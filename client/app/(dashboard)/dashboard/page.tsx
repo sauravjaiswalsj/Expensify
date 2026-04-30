@@ -213,7 +213,7 @@ function SummaryCard({ title, value, description, icon, accent }: SummaryCardPro
 }
 
 export default function DashboardPage() {
-  const { expenses: rawExpenses, loading, error, refresh: loadExpenses } = useExpenseData();
+  const { expenses: rawExpenses, summary, loading, error, refresh: loadExpenses } = useExpenseData();
   const { username } = useAuth();
   const { theme, toggleTheme, isDark } = useTheme();
   const [period, setPeriod] = useState<"7D" | "30D" | "90D" | "ALL" | "CUSTOM">("30D");
@@ -293,7 +293,10 @@ export default function DashboardPage() {
 
   const numTransactions = expenses.length;
   const numCategories = Array.from(new Set(expenses.map((e) => e.category).filter(Boolean))).length;
-  const averageSpend = useMemo(() => (numTransactions > 0 ? totalSpend / numTransactions : 0), [totalSpend, numTransactions]);
+  const dashboardTotalSpend = summary?.totalSpend ?? totalSpend;
+  const dashboardMonthlySpend = summary?.monthlySpend ?? totalSpend;
+  const dashboardCategoryCount = summary?.categoryCount ?? numCategories;
+  const dashboardTransactionCount = summary?.transactionCount ?? numTransactions;
 
   const periodLabel = useMemo(() => {
     if (period === "7D") return "Last 7 days";
@@ -509,7 +512,7 @@ export default function DashboardPage() {
                   Expense cadence
                 </p>
                 <p className="mt-2 text-base font-semibold sm:text-lg" style={{ color: "var(--text-primary)" }}>
-                  {numTransactions > 0 ? `${numTransactions} tracked` : "Start logging"}
+                  {dashboardTransactionCount > 0 ? `${dashboardTransactionCount} tracked` : "Start logging"}
                 </p>
               </div>
             </div>
@@ -588,8 +591,8 @@ export default function DashboardPage() {
                 Snapshot
               </p>
               <p className="mt-2 text-sm" style={{ color: "var(--text-secondary)" }}>
-                {numTransactions > 0
-                  ? `${formatCurrency(totalSpend, displayCurrency)} across ${numTransactions} transactions in ${numCategories || 0} categories.`
+                {dashboardTransactionCount > 0
+                  ? `${formatCurrency(dashboardTotalSpend, displayCurrency)} across ${dashboardTransactionCount} transactions in ${dashboardCategoryCount || 0} categories.`
                   : "No expense data yet for the selected period."}
               </p>
             </div>
@@ -624,8 +627,8 @@ export default function DashboardPage() {
       <section className="grid gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4">
         <SummaryCard
           title="Total spend"
-          value={loading ? "..." : formatCurrency(totalSpend, displayCurrency)}
-          description={periodLabel}
+          value={loading ? "..." : formatCurrency(dashboardTotalSpend, displayCurrency)}
+          description="All authenticated expenses"
           accent="var(--accent-blue)"
           icon={
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -639,9 +642,9 @@ export default function DashboardPage() {
           }
         />
         <SummaryCard
-          title="Average spend"
-          value={loading ? "..." : formatCurrency(averageSpend, displayCurrency)}
-          description="Per transaction"
+          title="Monthly spend"
+          value={loading ? "..." : formatCurrency(dashboardMonthlySpend, displayCurrency)}
+          description="Current calendar month"
           accent="var(--accent-green)"
           icon={
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -651,7 +654,7 @@ export default function DashboardPage() {
         />
         <SummaryCard
           title="Categories"
-          value={loading ? "..." : `${numCategories}`}
+          value={loading ? "..." : `${dashboardCategoryCount}`}
           description="Distinct categories tracked"
           accent="var(--accent-violet)"
           icon={
@@ -667,8 +670,8 @@ export default function DashboardPage() {
         />
         <SummaryCard
           title="Transactions"
-          value={loading ? "..." : `${numTransactions}`}
-          description="Entries in this period"
+          value={loading ? "..." : `${dashboardTransactionCount}`}
+          description="Total entries tracked"
           accent="var(--accent-amber)"
           icon={
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

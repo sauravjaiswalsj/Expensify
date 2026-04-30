@@ -82,8 +82,13 @@ export interface ResponseHeader {
 }
 
 export interface ApiResponse<T> {
-  header: ResponseHeader;
-  methodBody: T;
+  success?: boolean;
+  message?: string;
+  data?: T;
+  errorCode?: string;
+  correlationId?: string;
+  header?: ResponseHeader;
+  methodBody?: T;
 }
 
 export const EXPENSE_CATEGORIES = [
