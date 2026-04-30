@@ -2,6 +2,7 @@ package com.tracker.expenses.money.service.impl;
 
 import com.tracker.expenses.money.dto.Response;
 import com.tracker.expenses.money.dto.ResponseHeader;
+import com.tracker.expenses.money.dto.responsedto.ExpenseSummaryDTO;
 import com.tracker.expenses.money.exception.InvalidExpenseException;
 import com.tracker.expenses.money.model.Expense;
 import com.tracker.expenses.money.repository.ExpenseRepository;
@@ -12,16 +13,24 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 import static com.tracker.expenses.money.common.GetCurrentTime.convertLocalDateTimeToDate;
 
 @Slf4j
 @Service
 public class ExpenseServiceImpl implements ExpenseService {
+    private final ExpenseRepository expenseRepository;
+
     @Autowired
-    private ExpenseRepository expenseRepository;
+    public ExpenseServiceImpl(ExpenseRepository expenseRepository) {
+        this.expenseRepository = expenseRepository;
+    }
 
     @Override
     @Transactional
@@ -51,6 +60,9 @@ public class ExpenseServiceImpl implements ExpenseService {
     public Response<ResponseHeader, List<Expense>> getExpenseByUserId(String userId) {
         try {
             log.info("Getting expenses for user: {}", userId);
+            if (userId == null || userId.isBlank()) {
+                throw new InvalidExpenseException("Username is required");
+            }
             String username = userId.trim().toLowerCase(Locale.ROOT);
             List<Expense> expenseList = expenseRepository.findByUsername(username);
 
@@ -64,6 +76,66 @@ public class ExpenseServiceImpl implements ExpenseService {
             log.error("Unexpected error retrieving expenses", ex);
             return new Response<>(new ResponseHeader(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage()), null);
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Response<ResponseHeader, ExpenseSummaryDTO> getExpenseSummaryByUserId(String userId) {
+        try {
+            if (userId == null || userId.isBlank()) {
+                throw new InvalidExpenseException("Username is required");
+            }
+
+            String username = userId.trim().toLowerCase(Locale.ROOT);
+            List<Expense> expenses = expenseRepository.findByUsername(username);
+            LocalDate currentMonth = LocalDate.now(ZoneId.systemDefault()).withDayOfMonth(1);
+
+            double totalSpend = expenses.stream()
+                    .mapToDouble(Expense::getAmount)
+                    .sum();
+            double monthlySpend = expenses.stream()
+                    .filter(expense -> isInCurrentMonth(expense, currentMonth))
+                    .mapToDouble(Expense::getAmount)
+                    .sum();
+            long categoryCount = expenses.stream()
+                    .map(Expense::getCategory)
+                    .filter(Objects::nonNull)
+                    .map(String::trim)
+                    .filter(category -> !category.isBlank())
+                    .map(category -> category.toLowerCase(Locale.ROOT))
+                    .distinct()
+                    .count();
+
+            ExpenseSummaryDTO summary = new ExpenseSummaryDTO(
+                    totalSpend,
+                    monthlySpend,
+                    categoryCount,
+                    expenses.size()
+            );
+
+            return new Response<>(new ResponseHeader(HttpStatus.OK, "Expense summary retrieved successfully"), summary);
+        } catch (InvalidExpenseException e) {
+            log.warn("Error retrieving expense summary: {}", e.getMessage());
+            return new Response<>(new ResponseHeader(HttpStatus.BAD_REQUEST, e.getMessage()), null);
+        } catch (Exception ex) {
+            log.error("Unexpected error retrieving expense summary", ex);
+            return new Response<>(new ResponseHeader(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage()), null);
+        }
+    }
+
+    private boolean isInCurrentMonth(Expense expense, LocalDate currentMonth) {
+        Date expenseDate = expense.getDate() != null ? expense.getDate() : expense.getCreatedAt();
+        if (expenseDate == null) {
+            return false;
+        }
+
+        LocalDate expenseMonth = expenseDate
+                .toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate()
+                .withDayOfMonth(1);
+
+        return currentMonth.equals(expenseMonth);
     }
 
     @Override

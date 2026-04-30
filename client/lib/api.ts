@@ -6,6 +6,7 @@ import type {
   VerifyUserDTO,
   PasswordResetDTO,
   Expense,
+  ExpenseSummary,
   ApiResponse,
 } from "@/types";
 
@@ -177,6 +178,8 @@ export const expenseApi = {
     }),
 
   getAll: () => request<ApiResponse<Expense[]>>("/expenses"),
+
+  summary: () => request<ApiResponse<ExpenseSummary>>("/expenses/summary"),
 
   remove: (data: Expense) =>
     request<ApiResponse<Expense>>("/remove", {

@@ -38,6 +38,13 @@ export interface Expense {
   currency: Currency;
 }
 
+export interface ExpenseSummary {
+  totalSpend: number;
+  monthlySpend: number;
+  categoryCount: number;
+  transactionCount: number;
+}
+
 export interface LoginDTO {
   username?: string;
   email?: string;

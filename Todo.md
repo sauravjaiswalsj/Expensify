@@ -58,7 +58,7 @@ This file tracks **what to build next**, grouped by feature area, with optional 
 - Dashboard UI exists but stats are placeholders.
 
 ### TODO
-- [ ] `P0` Build summary APIs (total spend, monthly spend, category count, transaction count).
+- [x] `P0` Build summary APIs (total spend, monthly spend, category count, transaction count).
 - [ ] `P0` Bind dashboard cards to live backend data.
 - [ ] `P1` Add charts (monthly trend, category split, payment method split).
 - [ ] `P1` Add period switchers (7d / 30d / 90d / custom).

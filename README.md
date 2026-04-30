@@ -215,6 +215,7 @@ Current backend endpoints include:
 - `PUT /update` - update an expense
 - `DELETE /remove` - delete an expense
 - `GET /expenses` - list authenticated user's expenses
+- `GET /expenses/summary` - summarize authenticated user's total spend, monthly spend, category count, and transaction count
 
 Target async APIs:
 
