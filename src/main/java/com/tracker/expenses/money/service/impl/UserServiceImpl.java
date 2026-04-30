@@ -51,8 +51,15 @@ public class UserServiceImpl implements UserService {
         Validation.isUsernameValid(username);
         Validation.isEmailValid(user.getEmail());
         User existingUser = userRepository.findByUsernameIgnoreCase(username);
-        if ( existingUser != null && existingUser.isAccountVerified()){
+        User existingEmailUser = userRepository.findByEmail(user.getEmail());
+        if (existingUser != null && existingUser.isAccountVerified()){
             throw new UserAlreadyExistsException("User with username " + username);
+        }
+        if (existingEmailUser != null && existingEmailUser.isAccountVerified()) {
+            throw new UserAlreadyExistsException("User with email " + user.getEmail());
+        }
+        if (existingUser != null && existingEmailUser != null && !existingUser.getId().equals(existingEmailUser.getId())) {
+            throw new UserAlreadyExistsException("Username and email belong to different pending accounts");
         }
     }
 
@@ -91,6 +98,15 @@ public class UserServiceImpl implements UserService {
 
         isUserValid(user);
 
+        User existingUser = userRepository.findByUsernameIgnoreCase(user.getUsername());
+        User existingEmailUser = userRepository.findByEmail(user.getEmail());
+        if (existingUser == null && existingEmailUser != null) {
+            throw new UserAlreadyExistsException("Email is already linked to a pending account");
+        }
+        if (existingUser != null) {
+            return refreshPendingSignup(existingUser, userDTO);
+        }
+
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         user.setUpdatedAt(convertLocalDateTimeToDate());
         user.setAccountVerified(false);
@@ -99,11 +115,32 @@ public class UserServiceImpl implements UserService {
         user.setVerificationCodeExpiresAt(LocalDateTime.now().plusMinutes(15));
 
         var res = userRepository.save(user);
+        createUserRegisteredOutboxEvent(res);
 
+        return new Response<>(new ResponseHeader(HttpStatus.CREATED, "User created successfully"), res);
+    }
+
+    private Response<ResponseHeader, User> refreshPendingSignup(User existingUser, UserDTO userDTO) {
+        existingUser.setFirstName(userDTO.getFirstName());
+        existingUser.setLastName(userDTO.getLastName());
+        existingUser.setEmail(userDTO.getEmail().trim().toLowerCase(Locale.ROOT));
+        existingUser.setPassword(passwordEncoder.encode(userDTO.getPassword()));
+        existingUser.setVerificationCode(GenerateCodes.generateVerificationCode());
+        existingUser.setVerificationCodeExpiresAt(LocalDateTime.now().plusMinutes(15));
+        existingUser.setUpdatedAt(convertLocalDateTimeToDate());
+
+        User updatedUser = userRepository.save(existingUser);
+        retirePendingUserRegisteredEvents(updatedUser);
+        createUserRegisteredOutboxEvent(updatedUser);
+
+        return new Response<>(new ResponseHeader(HttpStatus.OK, "Pending account updated. Verification code will be resent"), updatedUser);
+    }
+
+    private void createUserRegisteredOutboxEvent(User user) {
         OutboxEvent event = new OutboxEvent();
         event.setEventType("USER_REGISTERED");
         event.setAggregateType("USER");
-        event.setAggregateId(res.getId());
+        event.setAggregateId(user.getId());
         event.setOutboxStatus(OutboxStatus.PENDING);
         event.setAttempts(0);
         event.setMaxAttempts(5);
@@ -111,28 +148,27 @@ public class UserServiceImpl implements UserService {
         event.setCreatedAt(convertLocalDateTimeToDate());
         event.setUpdatedAt(convertLocalDateTimeToDate());
         event.setPayload(Map.of(
-                "username", res.getUsername(),
-                "email", res.getEmail(),
-                "verificationCode", res.getVerificationCode()
+                "username", user.getUsername(),
+                "email", user.getEmail(),
+                "verificationCode", user.getVerificationCode()
         ));
         outboxEventRepository.save(event);
+    }
 
-//        TransactionSynchronizationManager.registerSynchronization(
-//                new TransactionSynchronizationAdapter() {
-//                    @Override
-//                    public void afterCommit() {
-//                        emailService.sendWelcomeEmail(user.getEmail());
-//                        emailService.sendVerificationEmail(user.getEmail(), user.getVerificationCode());
-//                    }
-//                });
-//        try {
-//            emailService.sendWelcomeEmail(user.getEmail());
-//            emailService.sendVerificationEmail(user.getEmail(), user.getVerificationCode());
-//        } catch (Exception ex) {
-//            log.error("Error sending verification email to user {}", user.getUsername());
-//            emailService.sendVerificationEmail(user.getEmail(), user.getVerificationCode());
-//        }
-        return new Response<>(new ResponseHeader(HttpStatus.CREATED, "User created successfully"), res);
+    private void retirePendingUserRegisteredEvents(User user) {
+        List<OutboxEvent> staleEvents = outboxEventRepository.findByAggregateTypeAndAggregateIdAndEventTypeAndOutboxStatusIn(
+                "USER",
+                user.getId(),
+                "USER_REGISTERED",
+                List.of(OutboxStatus.PENDING, OutboxStatus.PROCESSING)
+        );
+
+        for (OutboxEvent staleEvent : staleEvents) {
+            staleEvent.setOutboxStatus(OutboxStatus.FAILED);
+            staleEvent.setLastError("Superseded by newer verification code");
+            staleEvent.setUpdatedAt(convertLocalDateTimeToDate());
+        }
+        outboxEventRepository.saveAll(staleEvents);
     }
 
     public List<User> findAll() {

@@ -6,11 +6,16 @@ import com.tracker.expenses.money.repository.OutboxEventRepository;
 import com.tracker.expenses.money.service.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.FindAndModifyOptions;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.Date;
-import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -19,32 +24,44 @@ import java.util.Map;
 public class OutboxPoller {
     private final OutboxEventRepository  outboxEventRepository;
     private final EmailService emailService;
+    private final MongoTemplate mongoTemplate;
 
     @Scheduled(fixedDelayString = "${outbox.poller.delay-ms:10000}")
     public void poll() {
-        Date now = new Date();
-
-
-        List<OutboxEvent> events =
-                outboxEventRepository.findTop20ByOutboxStatusAndNextAttemptAtBeforeOrderByCreatedAtAsc(
-                        OutboxStatus.PENDING,
-                        now
-                );
-
-        for (OutboxEvent event : events) {
+        for (int i = 0; i < 20; i++) {
+            OutboxEvent event = claimNextEvent();
+            if (event == null) {
+                return;
+            }
             process(event);
         }
     }
 
+    private OutboxEvent claimNextEvent() {
+        Date now = new Date();
+        Query query = new Query()
+                .addCriteria(Criteria.where("outboxStatus").is(OutboxStatus.PENDING))
+                .addCriteria(Criteria.where("nextAttemptAt").lte(now))
+                .with(Sort.by(Sort.Direction.ASC, "createdAt"));
+
+        Update update = new Update()
+                .set("outboxStatus", OutboxStatus.PROCESSING)
+                .set("updatedAt", now);
+
+        return mongoTemplate.findAndModify(
+                query,
+                update,
+                FindAndModifyOptions.options().returnNew(true),
+                OutboxEvent.class
+        );
+    }
+
     private void process(OutboxEvent event) {
         try{
-            event.setOutboxStatus(OutboxStatus.PROCESSING);
-            event.setUpdatedAt(new Date());
-            outboxEventRepository.save(event);
             if ("USER_REGISTERED".equals(event.getEventType())) {
                 processUserRegistered(event);
             }else{
-                log.warn(event.getEventType()+" unknown event not processed");
+                throw new IllegalArgumentException("Unknown outbox event type: " + event.getEventType());
             }
             event.setOutboxStatus(OutboxStatus.PROCESSED);
             event.setProcessedAt(new Date());

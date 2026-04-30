@@ -13,4 +13,10 @@ import java.util.List;
 public interface OutboxEventRepository extends MongoRepository<OutboxEvent, String> {
      OutboxEvent findFirstByOutboxStatusAndNextAttemptAtLessThanEqual(OutboxStatus status, java.util.Date now);
      List<OutboxEvent> findTop20ByOutboxStatusAndNextAttemptAtBeforeOrderByCreatedAtAsc(OutboxStatus status, java.util.Date now);
+     List<OutboxEvent> findByAggregateTypeAndAggregateIdAndEventTypeAndOutboxStatusIn(
+             String aggregateType,
+             String aggregateId,
+             String eventType,
+             List<OutboxStatus> statuses
+     );
 }
