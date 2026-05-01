@@ -1,21 +1,20 @@
 package com.tracker.expenses.money.controller.auth;
 
+import com.tracker.expenses.money.common.LogSanitizer;
 import com.tracker.expenses.money.dto.ApiResponse;
 import com.tracker.expenses.money.dto.ApiResponses;
+import com.tracker.expenses.money.dto.responsedto.UserRegistrationResponseDTO;
 import com.tracker.expenses.money.dto.userdto.UserDTO;
 import com.tracker.expenses.money.exception.InvalidEmailException;
 import com.tracker.expenses.money.exception.InvalidUserException;
 import com.tracker.expenses.money.exception.InvalidUserLengthException;
 import com.tracker.expenses.money.exception.UserAlreadyExistsException;
 import com.tracker.expenses.money.service.UserService;
-import com.tracker.expenses.money.dto.Response;
 import com.tracker.expenses.money.model.User;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -27,15 +26,25 @@ public class Register {
     private UserService userService;
 
     @PostMapping("/signup")
-    public ResponseEntity<ApiResponse<User>> register(@Valid @RequestBody UserDTO user) {
+    public ResponseEntity<ApiResponse<UserRegistrationResponseDTO>> register(@Valid @RequestBody UserDTO user) {
         try{
             var response = userService.addUser(user);
             var httpResponseStatus = response.getHeader().getHttpResponseStatus();
             int code = httpResponseStatus.value();
-            log.info("AUDIT auth.signup.success username={} correlationId={}", user.getUsername(), ApiResponses.correlationId());
+            User savedUser = response.getMethodBody();
+            UserRegistrationResponseDTO responseBody = new UserRegistrationResponseDTO(
+                    savedUser.getUsername(),
+                    savedUser.getEmail(),
+                    savedUser.getFirstName(),
+                    savedUser.getLastName(),
+                    savedUser.getRole(),
+                    savedUser.isAccountVerified()
+            );
+            log.info("AUDIT auth.signup.success userHash={} correlationId={}",
+                    LogSanitizer.hashIdentifier(user.getUsername()), ApiResponses.correlationId());
             return ResponseEntity
                     .status(code)
-                    .body(ApiResponses.success(response.getHeader().getResponseMessage(), response.getMethodBody()));
+                    .body(ApiResponses.success(response.getHeader().getResponseMessage(), responseBody));
 
         }catch (InvalidUserException | InvalidUserLengthException |
                 InvalidEmailException ex){

@@ -2,7 +2,7 @@ import type {
   LoginDTO,
   LoginResponseDTO,
   UserDTO,
-  User,
+  UserRegistrationResponse,
   VerifyUserDTO,
   PasswordResetDTO,
   Expense,
@@ -98,6 +98,10 @@ function unwrapData<T>(response: ApiResponse<T>): T {
   return (response.data ?? response.methodBody) as T;
 }
 
+function unwrapMessage(response: ApiResponse<unknown>): string {
+  return response.message || response.header?.responseMessage || "";
+}
+
 async function request<T>(
   path: string,
   options: RequestInit = {}
@@ -163,32 +167,32 @@ export const authApi = {
     }).then(unwrapData),
 
   signup: (data: UserDTO) =>
-    request<ApiResponse<User>>("/auth/signup", {
+    request<ApiResponse<UserRegistrationResponse>>("/auth/signup", {
       method: "POST",
       body: JSON.stringify(data),
     }),
 
   verify: (data: VerifyUserDTO) =>
-    request<string>("/auth/verify", {
+    request<ApiResponse<void>>("/auth/verify", {
       method: "POST",
       body: JSON.stringify(data),
-    }),
+    }).then(unwrapMessage),
 
   resend: (username: string) =>
-    request<string>(`/auth/resend?username=${encodeURIComponent(username)}`, {
+    request<ApiResponse<void>>(`/auth/resend?username=${encodeURIComponent(username)}`, {
       method: "POST",
-    }),
+    }).then(unwrapMessage),
 
   forgot: (username: string) =>
-    request<string>(`/auth/forget?username=${encodeURIComponent(username)}`, {
+    request<ApiResponse<void>>(`/auth/forget?username=${encodeURIComponent(username)}`, {
       method: "POST",
-    }),
+    }).then(unwrapMessage),
 
   resetPassword: (data: PasswordResetDTO) =>
-    request<string>("/auth/forget/newPassword", {
+    request<ApiResponse<void>>("/auth/forget/newPassword", {
       method: "POST",
       body: JSON.stringify(data),
-    }),
+    }).then(unwrapMessage),
 };
 
 export const expenseApi = {

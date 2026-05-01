@@ -84,8 +84,8 @@ public class UserServiceImpl implements UserService {
                 userDTO.getEmail()
         );
 
-        user.setUsername(user.getUsername().trim().toLowerCase());
-        user.setEmail(user.getEmail().toLowerCase());
+        user.setUsername(user.getUsername().trim().toLowerCase(Locale.ROOT));
+        user.setEmail(user.getEmail().trim().toLowerCase(Locale.ROOT));
         user.setRole(Role.USER);
         user.setCreatedAt(convertLocalDateTimeToDate());
         return user;
@@ -224,7 +224,8 @@ public class UserServiceImpl implements UserService {
         } catch (UsernameNotFoundException ex) {
             return new Response<>(new ResponseHeader(HttpStatus.NOT_FOUND, ex.getMessage()), userdata);
         } catch (Exception ex) {
-            return new Response<>(new ResponseHeader(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage()), userdata);
+            log.error("Unexpected error updating password", ex);
+            return new Response<>(new ResponseHeader(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred"), userdata);
         }
     }
 
@@ -255,7 +256,8 @@ public class UserServiceImpl implements UserService {
         } catch (InvalidEmailException ex) {
             return new Response<>(new ResponseHeader(HttpStatus.BAD_REQUEST, ex.getMessage()), user);
         } catch (Exception ex) {
-            return new Response<>(new ResponseHeader(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage()), user);
+            log.error("Unexpected error updating user", ex);
+            return new Response<>(new ResponseHeader(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred"), user);
         }
     }
 

@@ -3,7 +3,6 @@ package com.tracker.expenses.money.controller.expense;
 import com.tracker.expenses.money.controller.Authentication;
 import com.tracker.expenses.money.dto.ApiResponse;
 import com.tracker.expenses.money.dto.ApiResponses;
-import com.tracker.expenses.money.dto.Response;
 import com.tracker.expenses.money.dto.responsedto.ExpenseSummaryDTO;
 import com.tracker.expenses.money.service.ExpenseService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +22,7 @@ public class GetExpenseSummary {
     public ResponseEntity<ApiResponse<ExpenseSummaryDTO>> getExpenseSummary() {
         String username = authentication.getCurrentUserName();
 
-        if (username == null) {
+        if (username == null || username.isBlank()) {
             return ResponseEntity.status(401).body(ApiResponses.error("User Not Authenticated", "UNAUTHENTICATED"));
         }
 

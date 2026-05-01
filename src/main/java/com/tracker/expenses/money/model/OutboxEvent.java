@@ -4,6 +4,7 @@ import com.tracker.expenses.money.enums.EventType;
 import com.tracker.expenses.money.enums.OutboxStatus;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.Date;
@@ -11,6 +12,10 @@ import java.util.Map;
 
 @Data
 @Document(collection = "outbox_event")
+@CompoundIndex(
+        name = "outbox_status_next_attempt_idx",
+        def = "{'outboxStatus': 1, 'nextAttemptAt': 1}"
+)
 public class OutboxEvent {
     @Id
     private String id;

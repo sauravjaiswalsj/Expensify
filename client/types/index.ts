@@ -25,6 +25,15 @@ export interface User {
   updatedAt: string;
 }
 
+export interface UserRegistrationResponse {
+  username: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: Role;
+  accountVerified: boolean;
+}
+
 export interface Expense {
   _id?: string;
   username?: string;

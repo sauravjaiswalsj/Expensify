@@ -252,6 +252,20 @@ export default function DashboardPage() {
   }, [rawExpenses, period, customStartDate, customEndDate]);
 
   const totalSpend = useMemo(() => expenses.reduce((sum, e) => sum + (e.amount || 0), 0), [expenses]);
+  const fallbackMonthlySpend = useMemo(() => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+
+    return rawExpenses.reduce((sum, expense) => {
+      const date = parseExpenseDate(expense);
+      if (!date || date.getFullYear() !== currentYear || date.getMonth() !== currentMonth) {
+        return sum;
+      }
+
+      return sum + (expense.amount || 0);
+    }, 0);
+  }, [rawExpenses]);
 
   const displayCurrency = useMemo(() => {
     const currencies = Array.from(new Set(expenses.map((e) => e.currency).filter(Boolean))) as Currency[];
@@ -293,10 +307,11 @@ export default function DashboardPage() {
 
   const numTransactions = expenses.length;
   const numCategories = Array.from(new Set(expenses.map((e) => e.category).filter(Boolean))).length;
-  const dashboardTotalSpend = summary?.totalSpend ?? totalSpend;
-  const dashboardMonthlySpend = summary?.monthlySpend ?? totalSpend;
-  const dashboardCategoryCount = summary?.categoryCount ?? numCategories;
-  const dashboardTransactionCount = summary?.transactionCount ?? numTransactions;
+  const useAllTimeSummary = period === "ALL" && summary != null;
+  const dashboardTotalSpend = useAllTimeSummary ? summary!.totalSpend : totalSpend;
+  const dashboardMonthlySpend = summary?.monthlySpend ?? fallbackMonthlySpend;
+  const dashboardCategoryCount = useAllTimeSummary ? summary!.categoryCount : numCategories;
+  const dashboardTransactionCount = useAllTimeSummary ? summary!.transactionCount : numTransactions;
 
   const periodLabel = useMemo(() => {
     if (period === "7D") return "Last 7 days";

@@ -44,7 +44,6 @@ class UserServiceImplTest {
         user.setUsername("codex");
         user.setPassword("$2a$10$encoded");
         when(userRepository.findByUsername("codex")).thenReturn(user);
-        when(userRepository.findByUsernameIgnoreCase("codex")).thenReturn(user);
         when(passwordEncoder.matches("StrongP@ss1", "$2a$10$encoded")).thenReturn(true);
 
         UserDTO result = userService.authenticateUser(login(" CoDeX ", "StrongP@ss1"));
@@ -59,7 +58,6 @@ class UserServiceImplTest {
         user.setUsername("codex");
         user.setPassword("StrongP@ss1");
         when(userRepository.findByUsername("codex")).thenReturn(user);
-        when(userRepository.findByUsernameIgnoreCase("codex")).thenReturn(user);
         when(passwordEncoder.encode("StrongP@ss1")).thenReturn("$2a$10$migrated");
 
         UserDTO result = userService.authenticateUser(login("codex", "StrongP@ss1"));
@@ -74,7 +72,6 @@ class UserServiceImplTest {
         User user = verifiedUser();
         user.setPassword("$2a$10$encoded");
         when(userRepository.findByUsername("codex")).thenReturn(user);
-        when(userRepository.findByUsernameIgnoreCase("codex")).thenReturn(user);
         when(passwordEncoder.matches("wrong", "$2a$10$encoded")).thenReturn(false);
 
         assertThrows(BadCredentialsException.class, () -> userService.authenticateUser(login("codex", "wrong")));
@@ -86,7 +83,6 @@ class UserServiceImplTest {
         user.setAccountVerified(false);
         user.setPassword("$2a$10$encoded");
         when(userRepository.findByUsername("codex")).thenReturn(user);
-        when(userRepository.findByUsernameIgnoreCase("codex")).thenReturn(user);
         when(passwordEncoder.matches("StrongP@ss1", "$2a$10$encoded")).thenReturn(true);
 
         assertThrows(UserNotVerifiedException.class,
@@ -108,12 +104,7 @@ class UserServiceImplTest {
         lowercaseUser.setUsername("codex");
         lowercaseUser.setPassword("$2a$10$correct");
 
-        User mixedCaseDuplicate = verifiedUser();
-        mixedCaseDuplicate.setUsername("Codex");
-        mixedCaseDuplicate.setPassword("$2a$10$wrong");
-
         when(userRepository.findByUsername("codex")).thenReturn(lowercaseUser);
-        when(userRepository.findByUsernameIgnoreCase("codex")).thenReturn(mixedCaseDuplicate);
         when(passwordEncoder.matches("StrongP@ss1", "$2a$10$correct")).thenReturn(true);
 
         UserDTO result = userService.authenticateUser(login("codex", "StrongP@ss1"));

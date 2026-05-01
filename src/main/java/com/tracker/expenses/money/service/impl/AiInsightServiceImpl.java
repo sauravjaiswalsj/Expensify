@@ -107,13 +107,13 @@ public class AiInsightServiceImpl implements AiInsightService {
 
     private Map<String, Object> buildExpenseSummary(List<Expense> expenses) {
         double total = expenses.stream()
-                .mapToDouble(Expense::getAmount)
+                .mapToDouble(this::amountAsDouble)
                 .sum();
 
         List<Map<String, Object>> topCategories = expenses.stream()
                 .collect(Collectors.groupingBy(
                         expense -> cleanCategory(expense.getCategory()),
-                        Collectors.summingDouble(Expense::getAmount)
+                        Collectors.summingDouble(this::amountAsDouble)
                 ))
                 .entrySet()
                 .stream()
@@ -130,7 +130,7 @@ public class AiInsightServiceImpl implements AiInsightService {
                 .limit(Math.max(1, aiProperties.getMaxExpenses()))
                 .map(expense -> {
                     Map<String, Object> item = new LinkedHashMap<>();
-                    item.put("amount", expense.getAmount());
+                    item.put("amount", amountAsDouble(expense));
                     item.put("category", cleanCategory(expense.getCategory()));
                     item.put("currency", expense.getCurrency());
                     item.put("date", formatExpenseDate(expense));
@@ -186,11 +186,11 @@ public class AiInsightServiceImpl implements AiInsightService {
             return "I don't have any expense data yet. Add a few transactions and I can start surfacing patterns, heavy categories, and recent changes.";
         }
 
-        double total = expenses.stream().mapToDouble(Expense::getAmount).sum();
+        double total = expenses.stream().mapToDouble(this::amountAsDouble).sum();
         Map.Entry<String, Double> topCategory = expenses.stream()
                 .collect(Collectors.groupingBy(
                         expense -> cleanCategory(expense.getCategory()),
-                        Collectors.summingDouble(Expense::getAmount)
+                        Collectors.summingDouble(this::amountAsDouble)
                 ))
                 .entrySet()
                 .stream()
@@ -213,7 +213,7 @@ public class AiInsightServiceImpl implements AiInsightService {
             String recentLine = expenses.stream()
                     .sorted(Comparator.comparing(this::expenseTime).reversed())
                     .limit(3)
-                    .map(expense -> cleanCategory(expense.getCategory()) + " " + currency + " " + String.format(Locale.US, "%.2f", expense.getAmount()))
+                    .map(expense -> cleanCategory(expense.getCategory()) + " " + currency + " " + String.format(Locale.US, "%.2f", amountAsDouble(expense)))
                     .collect(Collectors.joining(", "));
             return "Your most recent transactions are " + recentLine + ".";
         }
@@ -245,8 +245,12 @@ public class AiInsightServiceImpl implements AiInsightService {
     private double categoryTotal(List<Expense> expenses, String categoryNeedle) {
         return expenses.stream()
                 .filter(expense -> cleanCategory(expense.getCategory()).toLowerCase(Locale.ROOT).contains(categoryNeedle))
-                .mapToDouble(Expense::getAmount)
+                .mapToDouble(this::amountAsDouble)
                 .sum();
+    }
+
+    private double amountAsDouble(Expense expense) {
+        return expense.getAmount() == null ? 0.0 : expense.getAmount().doubleValue();
     }
 
     private String cleanCategory(String category) {

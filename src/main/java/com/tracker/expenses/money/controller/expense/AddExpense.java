@@ -3,7 +3,6 @@ package com.tracker.expenses.money.controller.expense;
 import com.tracker.expenses.money.controller.Authentication;
 import com.tracker.expenses.money.dto.ApiResponse;
 import com.tracker.expenses.money.dto.ApiResponses;
-import com.tracker.expenses.money.dto.Response;
 import com.tracker.expenses.money.model.Expense;
 import com.tracker.expenses.money.service.ExpenseService;
 import lombok.extern.slf4j.Slf4j;
@@ -12,6 +11,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.math.BigDecimal;
+import java.util.Locale;
 
 @Slf4j
 @RestController
@@ -33,10 +35,10 @@ public class AddExpense {
         if (expense == null) {
             return ResponseEntity.status(400).body(ApiResponses.error("Expense is empty", "INVALID_EXPENSE"));
         }
-        if (expense.getAmount() <= 0) {
+        if (expense.getAmount() == null || expense.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
             return ResponseEntity.status(400).body(ApiResponses.error("Expense amount is invalid", "INVALID_EXPENSE"));
         }
-        expense.setUsername(authenticatedUsername.toLowerCase());
+        expense.setUsername(authenticatedUsername.toLowerCase(Locale.ROOT));
         var response = expenseService.addExpense(expense);
         var httpResponseStatus = response.getHeader().getHttpResponseStatus();
         int code = httpResponseStatus.value();

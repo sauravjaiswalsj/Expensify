@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.util.Date;
 
 @Data
@@ -14,7 +15,7 @@ public class ExpenseDTO {
     @NotNull(message = "Amount is required")
     @Positive(message = "Amount must be positive")
     @Schema(description = "Amount of the expense", example = "100.50")
-    private double amount;
+    private BigDecimal amount;
 
     @Schema(description = "Description of the expense", example = "Food")
     private String description;

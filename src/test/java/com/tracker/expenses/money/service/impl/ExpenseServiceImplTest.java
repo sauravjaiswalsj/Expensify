@@ -11,6 +11,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -31,11 +32,12 @@ class ExpenseServiceImplTest {
 
     @Test
     void getExpenseSummaryByUserIdCalculatesUserTotals() {
-        Expense currentMonthFood = expense(120.50, "Food", LocalDate.now());
-        Expense previousMonthFood = expense(30.00, " food ", LocalDate.now().minusMonths(1));
-        Expense currentMonthTravel = expense(45.25, "Travel", LocalDate.now());
+        LocalDate now = LocalDate.now(ZoneId.systemDefault());
+        Expense currentMonthFood = expense(new BigDecimal("120.50"), "Food", now);
+        Expense previousMonthFood = expense(new BigDecimal("30.00"), " food ", now.minusMonths(1));
+        Expense currentMonthTravel = expense(new BigDecimal("45.25"), "Travel", now);
         Expense uncategorized = expense(10.00, null, null);
-        uncategorized.setCreatedAt(Date.from(LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant()));
+        uncategorized.setCreatedAt(Date.from(now.atStartOfDay(ZoneId.systemDefault()).toInstant()));
 
         expenseRepository.expenses = List.of(currentMonthFood, previousMonthFood, currentMonthTravel, uncategorized);
 
@@ -43,8 +45,8 @@ class ExpenseServiceImplTest {
         ExpenseSummaryDTO summary = response.getMethodBody();
 
         assertEquals(HttpStatus.OK, response.getHeader().getHttpResponseStatus());
-        assertEquals(205.75, summary.getTotalSpend(), 0.001);
-        assertEquals(175.75, summary.getMonthlySpend(), 0.001);
+        assertEquals(new BigDecimal("205.75"), summary.getTotalSpend());
+        assertEquals(new BigDecimal("175.75"), summary.getMonthlySpend());
         assertEquals(2, summary.getCategoryCount());
         assertEquals(4, summary.getTransactionCount());
     }
@@ -58,6 +60,10 @@ class ExpenseServiceImplTest {
     }
 
     private Expense expense(double amount, String category, LocalDate date) {
+        return expense(BigDecimal.valueOf(amount), category, date);
+    }
+
+    private Expense expense(BigDecimal amount, String category, LocalDate date) {
         Expense expense = new Expense();
         expense.setAmount(amount);
         expense.setCategory(category);

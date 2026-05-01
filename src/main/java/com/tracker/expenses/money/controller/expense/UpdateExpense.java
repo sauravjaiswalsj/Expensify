@@ -3,7 +3,6 @@ package com.tracker.expenses.money.controller.expense;
 import com.tracker.expenses.money.controller.Authentication;
 import com.tracker.expenses.money.dto.ApiResponse;
 import com.tracker.expenses.money.dto.ApiResponses;
-import com.tracker.expenses.money.dto.Response;
 import com.tracker.expenses.money.model.Expense;
 import com.tracker.expenses.money.service.ExpenseService;
 import lombok.extern.slf4j.Slf4j;

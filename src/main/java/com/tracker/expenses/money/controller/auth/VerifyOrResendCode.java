@@ -1,5 +1,6 @@
 package com.tracker.expenses.money.controller.auth;
 
+import com.tracker.expenses.money.common.LogSanitizer;
 import com.tracker.expenses.money.dto.ApiResponse;
 import com.tracker.expenses.money.dto.ApiResponses;
 import com.tracker.expenses.money.dto.userdto.VerifyUserDTO;
@@ -25,7 +26,8 @@ public class VerifyOrResendCode {
     public ResponseEntity<ApiResponse<Void>> verifyUser(@RequestBody @Valid VerifyUserDTO verifyUserDTO){
         try{
             var res = userService.verifyUser(verifyUserDTO);
-            log.info("AUDIT auth.verify.success username={} correlationId={}", verifyUserDTO.getUsername(), ApiResponses.correlationId());
+            log.info("AUDIT auth.verify.success userHash={} correlationId={}",
+                    LogSanitizer.hashIdentifier(verifyUserDTO.getUsername()), ApiResponses.correlationId());
             return ResponseEntity
                     .status(res.getHeader().getHttpResponseStatus())
                     .body(ApiResponses.success(res.getHeader().getResponseMessage(), null));
@@ -46,7 +48,8 @@ public class VerifyOrResendCode {
     public ResponseEntity<ApiResponse<Void>> resendCode(@RequestParam String username){
         try{
             var res = userService.resendVerificationCode(username);
-            log.info("AUDIT auth.verification_resend.success username={} correlationId={}", username, ApiResponses.correlationId());
+            log.info("AUDIT auth.verification_resend.success userHash={} correlationId={}",
+                    LogSanitizer.hashIdentifier(username), ApiResponses.correlationId());
             return ResponseEntity
                     .status(res.getHeader().getHttpResponseStatus())
                     .body(ApiResponses.success(res.getHeader().getResponseMessage(), null));

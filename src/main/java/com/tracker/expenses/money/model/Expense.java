@@ -9,6 +9,7 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.math.BigDecimal;
 import java.util.Date;
 
 @Data
@@ -24,7 +25,7 @@ public class Expense {
     private String username;
 
     @Schema(description = "This is the amount spent")
-    private double amount;
+    private BigDecimal amount;
 
     @Schema(description = "This is the category of the expense")
     private String category;

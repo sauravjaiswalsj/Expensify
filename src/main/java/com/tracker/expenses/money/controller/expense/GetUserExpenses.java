@@ -3,13 +3,11 @@ package com.tracker.expenses.money.controller.expense;
 import com.tracker.expenses.money.controller.Authentication;
 import com.tracker.expenses.money.dto.ApiResponse;
 import com.tracker.expenses.money.dto.ApiResponses;
-import com.tracker.expenses.money.dto.Response;
 import com.tracker.expenses.money.model.Expense;
 import com.tracker.expenses.money.service.ExpenseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -26,7 +24,7 @@ public class GetUserExpenses {
     public ResponseEntity<ApiResponse<List<Expense>>> getExpenses() {
         String username = authentication.getCurrentUserName();
 
-        if (username == null) {
+        if (username == null || username.isBlank()) {
             return ResponseEntity.status(401).body(ApiResponses.error("User Not Authenticated", "UNAUTHENTICATED"));
         }
         var response = expenseService.getExpenseByUserId(username);
