@@ -21,6 +21,40 @@ interface ExpenseDataContextValue {
 
 const ExpenseDataContext = createContext<ExpenseDataContextValue | null>(null);
 
+function parseExpenseDate(expense: Expense): Date | null {
+  const raw = expense.date || expense.createdAt || expense.updatedAt;
+  if (!raw) return null;
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function buildSummary(expenses: Expense[]): ExpenseSummary {
+  const currentMonth = new Date();
+  currentMonth.setDate(1);
+  currentMonth.setHours(0, 0, 0, 0);
+
+  const totalSpend = expenses.reduce((sum, expense) => sum + (expense.amount || 0), 0);
+  const monthlySpend = expenses
+    .filter((expense) => {
+      const date = parseExpenseDate(expense);
+      if (!date) return false;
+      return date.getFullYear() === currentMonth.getFullYear() && date.getMonth() === currentMonth.getMonth();
+    })
+    .reduce((sum, expense) => sum + (expense.amount || 0), 0);
+  const categoryCount = new Set(
+    expenses
+      .map((expense) => expense.category?.trim().toLowerCase())
+      .filter((category): category is string => Boolean(category))
+  ).size;
+
+  return {
+    totalSpend,
+    monthlySpend,
+    categoryCount,
+    transactionCount: expenses.length,
+  };
+}
+
 export function ExpenseDataProvider({ children }: { children: ReactNode }) {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [summary, setSummary] = useState<ExpenseSummary | null>(null);
@@ -32,14 +66,11 @@ export function ExpenseDataProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     setError(null);
     try {
-      const [expensesResponse, summaryResponse]: [
-        ApiResponse<Expense[]>,
-        ApiResponse<ExpenseSummary>,
-      ] = await Promise.all([expenseApi.getAll(), expenseApi.summary()]);
+      const expensesResponse: ApiResponse<Expense[]> = await expenseApi.getAll();
       const nextExpenses = expensesResponse.data ?? expensesResponse.methodBody ?? [];
-      const nextSummary = summaryResponse.data ?? summaryResponse.methodBody ?? null;
-      setExpenses(Array.isArray(nextExpenses) ? nextExpenses : []);
-      setSummary(nextSummary);
+      const normalizedExpenses = Array.isArray(nextExpenses) ? nextExpenses : [];
+      setExpenses(normalizedExpenses);
+      setSummary(buildSummary(normalizedExpenses));
     } catch (err: unknown) {
       if (err instanceof ApiError && err.status === 404) {
         setExpenses([]);
