@@ -6,11 +6,11 @@ import org.springframework.stereotype.Component;
 
 @Data
 @Component
-@ConfigurationProperties(prefix = "ai.openai")
+@ConfigurationProperties(prefix = "ai.xai")
 public class AiConfigurationProperties {
     private String apiKey;
-    private String model = "gpt-5.4-mini";
-    private String responsesUrl = "https://api.openai.com/v1/responses";
+    private String model = "grok-4-fast-non-reasoning";
+    private String responsesUrl = "https://api.x.ai/v1/responses";
     private int maxOutputTokens = 220;
     private int maxExpenses = 40;
 }

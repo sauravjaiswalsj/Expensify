@@ -26,11 +26,6 @@ public class Register {
     @Autowired
     private UserService userService;
 
-    @GetMapping("/users")
-    public List<User> getUser() {
-        return userService.findAll();
-    }
-
     @PostMapping("/signup")
     public ResponseEntity<ApiResponse<User>> register(@Valid @RequestBody UserDTO user) {
         try{

@@ -13,11 +13,11 @@ server:
   port: 8080 #<your-port-number>
 
 ai:
-  openai:
-    api-key: ${OPENAI_API_KEY:}
-    model: ${OPENAI_MODEL:gpt-5.4-mini}
-    responses-url: ${OPENAI_RESPONSES_URL:https://api.openai.com/v1/responses}
-    max-output-tokens: ${OPENAI_MAX_OUTPUT_TOKENS:220}
+  xai:
+    api-key: ${XAI_API_KEY:}
+    model: ${XAI_MODEL:grok-4-fast-non-reasoning}
+    responses-url: ${XAI_RESPONSES_URL:https://api.x.ai/v1/responses}
+    max-output-tokens: ${AI_MAX_OUTPUT_TOKENS:220}
     max-expenses: ${AI_MAX_EXPENSES:40}
 
 logging:
