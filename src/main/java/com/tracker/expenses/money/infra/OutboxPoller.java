@@ -1,5 +1,6 @@
 package com.tracker.expenses.money.infra;
 
+import com.tracker.expenses.money.enums.EventType;
 import com.tracker.expenses.money.enums.OutboxStatus;
 import com.tracker.expenses.money.model.OutboxEvent;
 import com.tracker.expenses.money.repository.OutboxEventRepository;
@@ -58,9 +59,44 @@ public class OutboxPoller {
 
     private void process(OutboxEvent event) {
         try{
-            if ("USER_REGISTERED".equals(event.getEventType())) {
-                processUserRegistered(event);
-            }else{
+            Map<String, Object> payload = event.getPayload();
+            if (payload == null) {
+                throw new IllegalArgumentException("Outbox event payload is missing");
+            }
+
+            String email = (String) payload.get("email");
+            String code = (String) payload.get("verificationCode");
+            if (email == null || email.isBlank()) {
+                throw new IllegalArgumentException("Outbox event email is missing");
+            }
+
+            if (EventType.USER_REGISTERED.equals(event.getEventType())) {
+                if (code == null || code.isBlank()) {
+                    throw new IllegalArgumentException("Verification code is missing");
+                }
+                emailService.sendWelcomeEmail(email);
+                emailService.sendVerificationEmail(email, code);
+            }
+            else if (EventType.PASSWORD_RESET_REQUESTED.equals(event.getEventType())) {
+                if (code == null || code.isBlank()) {
+                    throw new IllegalArgumentException("Password reset code is missing");
+                }
+                emailService.sendPasswordResetEmail(email, code);
+            }
+            else if (EventType.PASSWORD_RESET_SUCCESS.equals(event.getEventType())) {
+                emailService.sendResetSuccessEmail(email);
+            }
+            else if (EventType.VERIFY_EMAIL_REQUESTED.equals(event.getEventType())) {
+                if (code == null || code.isBlank()) {
+                    throw new IllegalArgumentException("Verification code is missing");
+                }
+                emailService.sendVerificationEmail(email, code);
+            }
+            else if (EventType.VERIFY_EMAIL_SENT.equals(event.getEventType())) {
+                emailService.sendVerificationSuccessEmail(email);
+            }
+
+            else{
                 throw new IllegalArgumentException("Unknown outbox event type: " + event.getEventType());
             }
             event.setOutboxStatus(OutboxStatus.PROCESSED);
@@ -93,15 +129,5 @@ public class OutboxPoller {
             default -> 3600L; // 1 hour
         };
         return new Date(System.currentTimeMillis() + delaySeconds * 1000);
-    }
-
-    private void processUserRegistered(OutboxEvent event) {
-        Map<String, Object> payload = event.getPayload();
-
-        String email = (String) payload.get("email");
-        String code = (String) payload.get("verificationCode");
-
-        emailService.sendWelcomeEmail(email);
-        emailService.sendVerificationEmail(email, code);
     }
 }

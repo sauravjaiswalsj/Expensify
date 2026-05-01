@@ -1,5 +1,6 @@
 package com.tracker.expenses.money.repository;
 
+import com.tracker.expenses.money.enums.EventType;
 import com.tracker.expenses.money.enums.OutboxStatus;
 import com.tracker.expenses.money.model.OutboxEvent;
 import org.springframework.data.mongodb.repository.MongoRepository;
@@ -16,7 +17,7 @@ public interface OutboxEventRepository extends MongoRepository<OutboxEvent, Stri
      List<OutboxEvent> findByAggregateTypeAndAggregateIdAndEventTypeAndOutboxStatusIn(
              String aggregateType,
              String aggregateId,
-             String eventType,
+             EventType eventType,
              List<OutboxStatus> statuses
      );
 }

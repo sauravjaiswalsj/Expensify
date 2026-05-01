@@ -6,12 +6,12 @@ import com.tracker.expenses.money.dto.userdto.LoginDTO;
 import com.tracker.expenses.money.dto.userdto.PasswordResetDTO;
 import com.tracker.expenses.money.dto.userdto.UserDTO;
 import com.tracker.expenses.money.dto.userdto.VerifyUserDTO;
+import com.tracker.expenses.money.enums.EventType;
 import com.tracker.expenses.money.enums.OutboxStatus;
 import com.tracker.expenses.money.enums.Role;
 import com.tracker.expenses.money.exception.*;
 import com.tracker.expenses.money.model.OutboxEvent;
 import com.tracker.expenses.money.repository.OutboxEventRepository;
-import com.tracker.expenses.money.service.EmailService;
 import com.tracker.expenses.money.service.UserService;
 import com.tracker.expenses.money.dto.Response;
 import com.tracker.expenses.money.dto.ResponseHeader;
@@ -30,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 import static com.tracker.expenses.money.common.GetCurrentTime.convertLocalDateTimeToDate;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -39,8 +40,6 @@ import java.util.Map;
 public class UserServiceImpl implements UserService {
     @Autowired
     private UserRepository userRepository;
-    @Autowired
-    private EmailService emailService;
     @Autowired
     private PasswordEncoder passwordEncoder;
     @Autowired
@@ -115,7 +114,7 @@ public class UserServiceImpl implements UserService {
         user.setVerificationCodeExpiresAt(LocalDateTime.now().plusMinutes(15));
 
         var res = userRepository.save(user);
-        createUserRegisteredOutboxEvent(res);
+        createUserRegisteredOutboxEvent(res, EventType.USER_REGISTERED);
 
         return new Response<>(new ResponseHeader(HttpStatus.CREATED, "User created successfully"), res);
     }
@@ -131,14 +130,14 @@ public class UserServiceImpl implements UserService {
 
         User updatedUser = userRepository.save(existingUser);
         retirePendingUserRegisteredEvents(updatedUser);
-        createUserRegisteredOutboxEvent(updatedUser);
+        createUserRegisteredOutboxEvent(updatedUser,EventType.USER_REGISTERED);
 
         return new Response<>(new ResponseHeader(HttpStatus.OK, "Pending account updated. Verification code will be resent"), updatedUser);
     }
 
-    private void createUserRegisteredOutboxEvent(User user) {
+    private OutboxEvent generateOutboxEvent(User user, EventType eventType) {
         OutboxEvent event = new OutboxEvent();
-        event.setEventType("USER_REGISTERED");
+        event.setEventType(eventType);
         event.setAggregateType("USER");
         event.setAggregateId(user.getId());
         event.setOutboxStatus(OutboxStatus.PENDING);
@@ -147,11 +146,17 @@ public class UserServiceImpl implements UserService {
         event.setNextAttemptAt(convertLocalDateTimeToDate());
         event.setCreatedAt(convertLocalDateTimeToDate());
         event.setUpdatedAt(convertLocalDateTimeToDate());
-        event.setPayload(Map.of(
-                "username", user.getUsername(),
-                "email", user.getEmail(),
-                "verificationCode", user.getVerificationCode()
-        ));
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("username", user.getUsername());
+        payload.put("email", user.getEmail());
+        if (user.getVerificationCode() != null) {
+            payload.put("verificationCode", user.getVerificationCode());
+        }
+        event.setPayload(payload);
+        return event;
+    }
+    private void createUserRegisteredOutboxEvent(User user, EventType eventType) {
+        OutboxEvent event = generateOutboxEvent(user, eventType);
         outboxEventRepository.save(event);
     }
 
@@ -159,7 +164,7 @@ public class UserServiceImpl implements UserService {
         List<OutboxEvent> staleEvents = outboxEventRepository.findByAggregateTypeAndAggregateIdAndEventTypeAndOutboxStatusIn(
                 "USER",
                 user.getId(),
-                "USER_REGISTERED",
+                EventType.USER_REGISTERED,
                 List.of(OutboxStatus.PENDING, OutboxStatus.PROCESSING)
         );
 
@@ -175,7 +180,6 @@ public class UserServiceImpl implements UserService {
         return userRepository.findAll();
     }
 
-    // TODO: add email based verification
     @Transactional
     public Response<ResponseHeader, Void> verifyUser(VerifyUserDTO verifyUserDTO) {
         if (verifyUserDTO.getUsername() == null || verifyUserDTO.getUsername().isEmpty()) {
@@ -198,9 +202,10 @@ public class UserServiceImpl implements UserService {
             user.setVerificationCode(null);
             user.setVerificationCodeExpiresAt(null);
             user.setUpdatedAt(convertLocalDateTimeToDate());
-            userRepository.save(user);
+            var response = userRepository.save(user);
 
-            emailService.sendVerificationSuccessEmail(user.getEmail());
+            createUserRegisteredOutboxEvent(response, EventType.VERIFY_EMAIL_SENT);
+
             return new Response<>(new ResponseHeader(HttpStatus.OK, "User successfully verified"));
         }
 
@@ -254,6 +259,7 @@ public class UserServiceImpl implements UserService {
         }
     }
 
+    @Transactional
     public Response<ResponseHeader, Void> resendVerificationCode(String username) {
         if (username == null || username.isEmpty()) {
             throw new UsernameNotFoundException("Username is empty");
@@ -265,21 +271,19 @@ public class UserServiceImpl implements UserService {
         if (user.isAccountVerified()) {
             throw new UserAlreadyVerifiedException("User already verified");
         }
-        try {
-            if (user.getVerificationCodeExpiresAt().isBefore(LocalDateTime.now())) {
-                user.setVerificationCode(GenerateCodes.generateVerificationCode());
-            }
-            String code = user.getVerificationCode() == null || user.getVerificationCode().isEmpty()
-                    ? GenerateCodes.generateVerificationCode()
-                    : user.getVerificationCode();
-            emailService.sendVerificationEmail(user.getEmail(), code);
-        } catch (Exception ex) {
-            log.error("Error sending verification email. Retrying...");
-            emailService.sendVerificationEmail(user.getEmail(), user.getVerificationCode());
-        } finally {
-            user.setVerificationCodeExpiresAt(LocalDateTime.now().plusMinutes(15));
-            userRepository.save(user);
+        if (user.getVerificationCodeExpiresAt() == null || user.getVerificationCodeExpiresAt().isBefore(LocalDateTime.now())) {
+            user.setVerificationCode(GenerateCodes.generateVerificationCode());
         }
+        String code = user.getVerificationCode() == null || user.getVerificationCode().isEmpty()
+                ? GenerateCodes.generateVerificationCode()
+                : user.getVerificationCode();
+        user.setVerificationCode(code);
+        user.setVerificationCodeExpiresAt(LocalDateTime.now().plusMinutes(15));
+        userRepository.save(user);
+
+        OutboxEvent event = generateOutboxEvent(user, EventType.VERIFY_EMAIL_REQUESTED);
+        outboxEventRepository.save(event);
+
         return new Response<>(new ResponseHeader(HttpStatus.OK, "Verification code resent successfully"));
     }
 
@@ -351,6 +355,7 @@ public class UserServiceImpl implements UserService {
         }
     }
 
+    @Transactional
     public Response<ResponseHeader, Void> forgetUserPassword(String username) {
         User user = findByUsername(username);
         if (user == null) {
@@ -360,15 +365,14 @@ public class UserServiceImpl implements UserService {
         user.setVerificationCode(code);
         user.setVerificationCodeExpiresAt(LocalDateTime.now().plusHours(1));
         userRepository.save(user);
-        try {
-            emailService.sendPasswordResetEmail(user.getEmail(), code);
-        } catch (RuntimeException ex) {
-            log.error("Email Retrying...");
-            emailService.sendPasswordResetEmail(user.getEmail(), code);
-        }
+
+        OutboxEvent event = generateOutboxEvent(user, EventType.PASSWORD_RESET_REQUESTED);
+        outboxEventRepository.save(event);
+
         return new Response<>(new ResponseHeader(HttpStatus.OK, "Password reset code sent successfully"));
     }
 
+    @Transactional
     public Response<ResponseHeader, Void> resetForgetPassword(PasswordResetDTO passwordResetDTO) {
         User user = findByUsername(passwordResetDTO.getUsername());
         if (user == null) {
@@ -392,12 +396,8 @@ public class UserServiceImpl implements UserService {
         user.setUpdatedAt(convertLocalDateTimeToDate());
         userRepository.save(user);
 
-        try {
-            emailService.sendResetSuccessEmail(user.getEmail());
-        } catch (Exception ex) {
-            log.error("Sending Email. Retrying...");
-            emailService.sendResetSuccessEmail(user.getEmail());
-        }
+        outboxEventRepository.save(generateOutboxEvent(user, EventType.PASSWORD_RESET_SUCCESS));
+
         return new Response<>(new ResponseHeader(HttpStatus.OK, "Password successfully reset"));
 
     }
