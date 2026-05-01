@@ -2,32 +2,13 @@
 
 import { useMemo, useState, type FormEvent } from "react";
 import { useExpenseData } from "@/lib/expense-data-context";
+import { aiApi } from "@/lib/api";
 import { type Expense } from "@/types";
-
-const XAI_API_KEY = process.env.NEXT_PUBLIC_XAI_API_KEY;
-const XAI_RESPONSES_URL = "https://api.x.ai/v1/responses";
-const XAI_MODEL = "grok-4.20-reasoning";
-const AI_CACHE_PREFIX = "rivo-ai-cache:";
-const AI_RATE_LIMIT_KEY = "rivo-ai-rate-limit";
-const AI_RATE_LIMIT_MAX_CALLS = 8;
-const AI_RATE_LIMIT_WINDOW_MS = 24 * 60 * 60 * 1000;
-const AI_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
-const MAX_EXPENSES_FOR_AI_CONTEXT = 40;
 
 type ChatMessage = {
   id: string;
   role: "user" | "assistant";
   text: string;
-};
-
-type AiCacheEntry = {
-  expiresAt: number;
-  text: string;
-};
-
-type AiRateLimit = {
-  windowStart: number;
-  count: number;
 };
 
 function parseExpenseDate(expense: Expense): Date | null {
@@ -75,205 +56,10 @@ function isInsightPrompt(input: string): boolean {
   return insightTerms.some((term) => normalized.includes(term));
 }
 
-function buildExpenseFingerprint(expenses: Expense[]) {
-  return expenses
-    .map((expense) => [
-      expense._id,
-      expense.amount,
-      expense.category,
-      expense.currency,
-      expense.date,
-      expense.updatedAt,
-      expense.createdAt,
-    ].join(":"))
-    .join("|");
-}
-
-function hashForStorage(value: string) {
-  let hash = 0;
-
-  for (let i = 0; i < value.length; i += 1) {
-    hash = (hash * 31 + value.charCodeAt(i)) >>> 0;
-  }
-
-  return hash.toString(36);
-}
-
-function buildCacheKey(input: string, expenses: Expense[]) {
-  const normalizedPrompt = input.trim().toLowerCase().replace(/\s+/g, " ");
-  const fingerprint = buildExpenseFingerprint(expenses);
-  return `${AI_CACHE_PREFIX}${hashForStorage(`${normalizedPrompt}|${fingerprint}`)}`;
-}
-
-function readCachedAiReply(cacheKey: string): string | null {
-  if (typeof window === "undefined") return null;
-
-  try {
-    const raw = window.localStorage.getItem(cacheKey);
-    if (!raw) return null;
-
-    const cached = JSON.parse(raw) as AiCacheEntry;
-    if (Date.now() > cached.expiresAt) {
-      window.localStorage.removeItem(cacheKey);
-      return null;
-    }
-
-    return cached.text;
-  } catch {
-    return null;
-  }
-}
-
-function writeCachedAiReply(cacheKey: string, text: string) {
-  if (typeof window === "undefined") return;
-
-  try {
-    const cacheEntry: AiCacheEntry = {
-      expiresAt: Date.now() + AI_CACHE_TTL_MS,
-      text,
-    };
-    window.localStorage.setItem(cacheKey, JSON.stringify(cacheEntry));
-  } catch {
-    // Cache is an optimization only; the chat should still work when storage is unavailable.
-  }
-}
-
-function canUseAiCall(): boolean {
-  if (typeof window === "undefined") return false;
-
-  try {
-    const now = Date.now();
-    const raw = window.localStorage.getItem(AI_RATE_LIMIT_KEY);
-    const current = raw ? (JSON.parse(raw) as AiRateLimit) : null;
-
-    if (!current || now - current.windowStart > AI_RATE_LIMIT_WINDOW_MS) {
-      return true;
-    }
-
-    return current.count < AI_RATE_LIMIT_MAX_CALLS;
-  } catch {
-    return true;
-  }
-}
-
-function recordAiCall() {
-  if (typeof window === "undefined") return;
-
-  try {
-    const now = Date.now();
-    const raw = window.localStorage.getItem(AI_RATE_LIMIT_KEY);
-    const current = raw ? (JSON.parse(raw) as AiRateLimit) : null;
-
-    if (!current || now - current.windowStart > AI_RATE_LIMIT_WINDOW_MS) {
-      window.localStorage.setItem(AI_RATE_LIMIT_KEY, JSON.stringify({ windowStart: now, count: 1 }));
-      return;
-    }
-
-    window.localStorage.setItem(
-      AI_RATE_LIMIT_KEY,
-      JSON.stringify({ windowStart: current.windowStart, count: current.count + 1 })
-    );
-  } catch {
-    // Local rate tracking is best-effort in this frontend-only integration.
-  }
-}
-
-function buildAiPrompt(input: string, expenses: Expense[]) {
-  const total = expenses.reduce((sum, item) => sum + (item.amount || 0), 0);
-  const topCategories = Object.entries(
-    expenses.reduce<Record<string, number>>((acc, item) => {
-      const key = item.category || "Uncategorized";
-      acc[key] = (acc[key] ?? 0) + (item.amount || 0);
-      return acc;
-    }, {})
-  )
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 6)
-    .map(([category, amount]) => ({ category, amount }));
-
-  const recentExpenses = [...expenses]
-    .sort((a, b) => (parseExpenseDate(b)?.getTime() ?? 0) - (parseExpenseDate(a)?.getTime() ?? 0))
-    .slice(0, MAX_EXPENSES_FOR_AI_CONTEXT)
-    .map((expense) => ({
-      amount: expense.amount,
-      category: expense.category || "Uncategorized",
-      currency: expense.currency,
-      date: expense.date || expense.createdAt,
-      description: expense.description,
-    }));
-
-  return [
-    "You are Rivo's expense insight assistant.",
-    "Answer only with practical spending insight based on the provided expense data.",
-    "Keep the response under 110 words. Do not mention backend, APIs, rate limits, or hidden implementation details.",
-    "",
-    `User question: ${input}`,
-    "",
-    `Expense summary: ${JSON.stringify({
-      transactionCount: expenses.length,
-      total,
-      topCategories,
-      recentExpenses,
-    })}`,
-  ].join("\n");
-}
-
-function extractAiResponseText(payload: unknown): string | null {
-  if (!payload || typeof payload !== "object") return null;
-
-  const response = payload as {
-    output_text?: unknown;
-    output?: Array<{
-      content?: Array<{
-        text?: unknown;
-        type?: string;
-      }>;
-    }>;
-  };
-
-  if (typeof response.output_text === "string") {
-    return response.output_text.trim();
-  }
-
-  const text = response.output
-    ?.flatMap((item) => item.content ?? [])
-    .map((content) => content.text)
-    .filter((value): value is string => typeof value === "string")
-    .join("\n")
-    .trim();
-
-  return text || null;
-}
-
 async function requestAiInsight(input: string, expenses: Expense[]): Promise<string | null> {
-  if (!XAI_API_KEY || !isInsightPrompt(input)) return null;
-
-  const cacheKey = buildCacheKey(input, expenses);
-  const cachedReply = readCachedAiReply(cacheKey);
-  if (cachedReply) return cachedReply;
-  if (!canUseAiCall()) return null;
-
-  recordAiCall();
-
-  const response = await fetch(XAI_RESPONSES_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${XAI_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model: XAI_MODEL,
-      input: buildAiPrompt(input, expenses),
-    }),
-  });
-
-  if (!response.ok) return null;
-
-  const text = extractAiResponseText(await response.json());
-  if (!text) return null;
-
-  writeCachedAiReply(cacheKey, text);
-  return text;
+  if (!isInsightPrompt(input)) return null;
+  const insight = await aiApi.insight(input);
+  return insight?.reply || buildInsightReply(input, expenses);
 }
 
 function buildInsightReply(input: string, expenses: Expense[]): string {
@@ -451,7 +237,7 @@ export default function ChatPage() {
               Conversation
             </h2>
             <p className="mt-1 text-sm" style={{ color: "var(--text-muted)" }}>
-              Ask to get insights expense-aware responses.
+              Ask for expense-aware responses.
             </p>
           </div>
 
@@ -536,12 +322,10 @@ export default function ChatPage() {
           </div>
 
           <div className="surface-panel p-6">
-            <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
-              UI note
-            </h2>
+            <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>Assistant status</h2>
             <p className="mt-3 text-sm leading-6" style={{ color: "var(--text-secondary)" }}>
-              Insight prompts can use the configured AI provider with local caching and a daily browser call limit.
-              Other prompts keep using the fast frontend response.
+              Insight prompts use your saved expense data to answer with concise guidance. General prompts keep the fast
+              local response.
             </p>
           </div>
         </section>

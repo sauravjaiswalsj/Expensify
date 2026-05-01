@@ -28,6 +28,14 @@ security:
     secret-key: ${JWT_SECRET_KEY}
     expiration: 3600000
 
+ai:
+  openai:
+    api-key: ${OPENAI_API_KEY:}
+    model: ${OPENAI_MODEL:gpt-5.4-mini}
+    responses-url: ${OPENAI_RESPONSES_URL:https://api.openai.com/v1/responses}
+    max-output-tokens: ${OPENAI_MAX_OUTPUT_TOKENS:220}
+    max-expenses: ${AI_MAX_EXPENSES:40}
+
 server:
   port: 8080
 
@@ -49,5 +57,3 @@ logging:
 #        mail=DEBUG:
 springdoc:
   show-login-endpoint: true
-
-

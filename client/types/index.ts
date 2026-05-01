@@ -45,6 +45,11 @@ export interface ExpenseSummary {
   transactionCount: number;
 }
 
+export interface AiInsightResponse {
+  reply: string;
+  aiGenerated: boolean;
+}
+
 export interface LoginDTO {
   username?: string;
   email?: string;

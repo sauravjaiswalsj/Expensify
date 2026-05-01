@@ -12,6 +12,14 @@ spring:
 server:
   port: 8080 #<your-port-number>
 
+ai:
+  openai:
+    api-key: ${OPENAI_API_KEY:}
+    model: ${OPENAI_MODEL:gpt-5.4-mini}
+    responses-url: ${OPENAI_RESPONSES_URL:https://api.openai.com/v1/responses}
+    max-output-tokens: ${OPENAI_MAX_OUTPUT_TOKENS:220}
+    max-expenses: ${AI_MAX_EXPENSES:40}
+
 logging:
   level:
     root: #<your-log-level>

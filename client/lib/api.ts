@@ -7,6 +7,7 @@ import type {
   PasswordResetDTO,
   Expense,
   ExpenseSummary,
+  AiInsightResponse,
   ApiResponse,
 } from "@/types";
 
@@ -212,4 +213,12 @@ export const expenseApi = {
       method: "PUT",
       body: JSON.stringify(data),
     }),
+};
+
+export const aiApi = {
+  insight: (prompt: string) =>
+    request<ApiResponse<AiInsightResponse>>("/ai/insights", {
+      method: "POST",
+      body: JSON.stringify({ prompt }),
+    }).then(unwrapData),
 };
