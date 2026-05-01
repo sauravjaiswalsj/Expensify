@@ -99,7 +99,7 @@ public class EmailServiceImpl implements EmailService {
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome Email</title>
+    <title>Welcome to Rivo Family</title>
   </head>
   <body style="margin:0; padding:0; background-color:#f4f4f4; font-family: 'Helvetica Neue', sans-serif;">
     <table width="100%%" cellpadding="0" cellspacing="0" style="padding: 40px 0;">
@@ -127,7 +127,7 @@ public class EmailServiceImpl implements EmailService {
                 </ul>
                 <p style="text-align: center; margin: 40px 0;">
                   <a href="https://rivo.ai/dashboard" style="background-color: #4f46e5; color: #ffffff; padding: 14px 28px; border-radius: 6px; text-decoration: none; font-size: 16px; font-weight: bold;">
-                    Go to Dashboard \uD83C\uDF89.
+                    Go to Dashboard
                   </a>
                 </p>
                 <p style="font-size: 14px; color: #666666; text-align: center;">

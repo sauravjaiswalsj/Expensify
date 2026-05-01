@@ -2,10 +2,12 @@ import type {
   LoginDTO,
   LoginResponseDTO,
   UserDTO,
-  User,
+  UserRegistrationResponse,
   VerifyUserDTO,
   PasswordResetDTO,
   Expense,
+  ExpenseSummary,
+  AiInsightResponse,
   ApiResponse,
 } from "@/types";
 
@@ -83,11 +85,21 @@ function handleExpiredAuth(path: string, status: number): void {
 export class ApiError extends Error {
   constructor(
     public status: number,
-    message: string
+    message: string,
+    public errorCode?: string,
+    public correlationId?: string
   ) {
     super(message);
     this.name = "ApiError";
   }
+}
+
+function unwrapData<T>(response: ApiResponse<T>): T {
+  return (response.data ?? response.methodBody) as T;
+}
+
+function unwrapMessage(response: ApiResponse<unknown>): string {
+  return response.message || response.header?.responseMessage || "";
 }
 
 async function request<T>(
@@ -119,54 +131,68 @@ async function request<T>(
 
   const text = await response.text();
 
+  let parsed: unknown = undefined;
+  if (text) {
+    try {
+      parsed = JSON.parse(text);
+    } catch {
+      parsed = text;
+    }
+  }
+
   if (!response.ok) {
     handleExpiredAuth(path, response.status);
-    throw new ApiError(response.status, text || `Error ${response.status}`);
+    if (parsed && typeof parsed === "object") {
+      const body = parsed as Partial<ApiResponse<unknown>>;
+      throw new ApiError(
+        response.status,
+        body.message || body.header?.responseMessage || `Error ${response.status}`,
+        body.errorCode,
+        body.correlationId
+      );
+    }
+    throw new ApiError(response.status, String(parsed || `Error ${response.status}`));
   }
 
   if (!text) return undefined as T;
 
-  try {
-    return JSON.parse(text) as T;
-  } catch {
-    return text as unknown as T;
-  }
+  return parsed as T;
 }
 
 export const authApi = {
   login: (data: LoginDTO) =>
-    request<LoginResponseDTO>("/auth/login", {
+    request<ApiResponse<LoginResponseDTO>>("/auth/login", {
       method: "POST",
       body: JSON.stringify(data),
-    }),
+    }).then(unwrapData),
 
   signup: (data: UserDTO) =>
-    request<ApiResponse<User>>("/auth/signup", {
+    request<ApiResponse<UserRegistrationResponse>>("/auth/signup", {
       method: "POST",
       body: JSON.stringify(data),
     }),
 
   verify: (data: VerifyUserDTO) =>
-    request<string>("/auth/verify", {
+    request<ApiResponse<void>>("/auth/verify", {
       method: "POST",
       body: JSON.stringify(data),
-    }),
+    }).then(unwrapMessage),
 
   resend: (username: string) =>
-    request<string>(`/auth/resend?username=${encodeURIComponent(username)}`, {
+    request<ApiResponse<void>>(`/auth/resend?username=${encodeURIComponent(username)}`, {
       method: "POST",
-    }),
+    }).then(unwrapMessage),
 
   forgot: (username: string) =>
-    request<string>(`/auth/forget?username=${encodeURIComponent(username)}`, {
+    request<ApiResponse<void>>(`/auth/forget?username=${encodeURIComponent(username)}`, {
       method: "POST",
-    }),
+    }).then(unwrapMessage),
 
   resetPassword: (data: PasswordResetDTO) =>
-    request<string>("/auth/forget/newPassword", {
+    request<ApiResponse<void>>("/auth/forget/newPassword", {
       method: "POST",
       body: JSON.stringify(data),
-    }),
+    }).then(unwrapMessage),
 };
 
 export const expenseApi = {
@@ -177,6 +203,8 @@ export const expenseApi = {
     }),
 
   getAll: () => request<ApiResponse<Expense[]>>("/expenses"),
+
+  summary: () => request<ApiResponse<ExpenseSummary>>("/expenses/summary"),
 
   remove: (data: Expense) =>
     request<ApiResponse<Expense>>("/remove", {
@@ -189,4 +217,12 @@ export const expenseApi = {
       method: "PUT",
       body: JSON.stringify(data),
     }),
+};
+
+export const aiApi = {
+  insight: (prompt: string) =>
+    request<ApiResponse<AiInsightResponse>>("/ai/insights", {
+      method: "POST",
+      body: JSON.stringify({ prompt }),
+    }).then(unwrapData),
 };

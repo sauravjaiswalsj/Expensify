@@ -2,7 +2,7 @@
 
 Rivo is a full-stack personal finance platform built around production backend engineering patterns: secure authentication, ownership-scoped expense management, asynchronous workflows, observable services, and an event-driven architecture roadmap.
 
-The current codebase contains a Spring Boot API, MongoDB persistence, JWT authentication, email verification, password reset, a Next.js client, Docker packaging, and CI/CD deployment configuration. The next architecture evolution is documented in [ARCHITECTURE.md](ARCHITECTURE.md): async command APIs, transactional outbox, LogStore-backed event history, worker services, Redis coordination, circuit breakers, and Prometheus/Grafana observability.
+The current codebase contains a Spring Boot API, MongoDB persistence, JWT authentication, email verification, password reset, Mongo-backed outbox processing for auth email side effects, correlation IDs, a Next.js client, Docker packaging, and CI/CD deployment configuration. The next architecture evolution is documented in [ARCHITECTURE.md](ARCHITECTURE.md): async command APIs, LogStore-backed event history, worker services, Redis coordination, circuit breakers, and Prometheus/Grafana observability.
 
 ## Why This Project Exists
 
@@ -68,13 +68,20 @@ This future direction is documented as architectural readiness, not current prod
 ## Current Capabilities
 
 - User registration with username, email, and password validation
-- Email verification before login
-- Password reset using verification codes
+- Email verification before login, with verification emails sent through outbox events
+- Password reset using verification codes, with reset emails sent through outbox events
 - JWT-based authentication
 - BCrypt password hashing, including legacy plaintext password migration on login
 - Authenticated expense create, update, delete, and list flows
 - User-scoped expense access so users cannot mutate another user's records
+- Dashboard summary API and live dashboard cards for total spend, monthly spend, category count, and transaction count
+- Dashboard charts and period filters for recent expense analysis
 - MongoDB persistence with indexed username and email fields
+- Mongo-backed transactional outbox for auth email side effects
+- Scheduled outbox poller with atomic event claiming, retries, failed-event state, and supported auth event types
+- Standard API response envelope with `success`, `message`, `data`, `errorCode`, and `correlationId`
+- `X-Correlation-ID` request/response header propagation and correlation-aware logs
+- Structured audit logs for auth and expense mutations
 - Spring Boot Actuator dependency included for operational endpoints
 - Swagger/OpenAPI UI dependency included for API exploration
 - Next.js frontend under `client/`
@@ -215,6 +222,29 @@ Current backend endpoints include:
 - `PUT /update` - update an expense
 - `DELETE /remove` - delete an expense
 - `GET /expenses` - list authenticated user's expenses
+- `GET /expenses/summary` - summarize authenticated user's total spend, monthly spend, category count, and transaction count
+
+Current API responses use a standard envelope:
+
+```json
+{
+  "success": true,
+  "message": "Operation completed",
+  "data": {},
+  "errorCode": null,
+  "correlationId": "request-correlation-id"
+}
+```
+
+Clients can pass `X-Correlation-ID`; otherwise the API generates one and returns it in the response header and body.
+
+Implemented outbox-backed auth events:
+
+- `USER_REGISTERED`
+- `VERIFY_EMAIL_REQUESTED`
+- `VERIFY_EMAIL_SENT`
+- `PASSWORD_RESET_REQUESTED`
+- `PASSWORD_RESET_SUCCESS`
 
 Target async APIs:
 
@@ -229,7 +259,7 @@ Target async APIs:
 
 The next major backend iteration focuses on:
 
-1. Transactional outbox for reliable event publishing
+1. Dedicated event dispatcher/handler abstractions on top of the current outbox poller
 2. Separate `rivo-worker` service for async side effects
 3. LogStore integration for immutable domain events and replay
 4. Redis-backed idempotency keys on write commands

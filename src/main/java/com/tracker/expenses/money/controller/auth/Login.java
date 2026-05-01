@@ -1,6 +1,9 @@
 package com.tracker.expenses.money.controller.auth;
 
 import com.tracker.expenses.money.config.security.JwtService;
+import com.tracker.expenses.money.common.LogSanitizer;
+import com.tracker.expenses.money.dto.ApiResponse;
+import com.tracker.expenses.money.dto.ApiResponses;
 import com.tracker.expenses.money.dto.responsedto.LoginResponseDTO;
 import com.tracker.expenses.money.dto.userdto.LoginDTO;
 import com.tracker.expenses.money.dto.userdto.UserDTO;
@@ -28,22 +31,24 @@ public class Login {
     private JwtService jwtService;
 
     @PostMapping("/login")
-    public ResponseEntity<Object> loginUser(@RequestBody @Valid LoginDTO loginDTO) {
+    public ResponseEntity<ApiResponse<LoginResponseDTO>> loginUser(@RequestBody @Valid LoginDTO loginDTO) {
         try {
             UserDTO userDetails = userService.authenticateUser(loginDTO);
             String jwtToken = jwtService.generateToken(userDetails.getUsername());
             LoginResponseDTO loginResponseDTO = new LoginResponseDTO(jwtToken, jwtService.getExpirationTime());
-            return ResponseEntity.ok(loginResponseDTO);
+            log.info("AUDIT auth.login.success userHash={} correlationId={}",
+                    LogSanitizer.hashIdentifier(userDetails.getUsername()), ApiResponses.correlationId());
+            return ResponseEntity.ok(ApiResponses.success("Login successful", loginResponseDTO));
         } catch (UserNotVerifiedException ex) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ex.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponses.error(ex.getMessage(), "USER_NOT_VERIFIED"));
         } catch (BadCredentialsException ex) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ex.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponses.error(ex.getMessage(), "BAD_CREDENTIALS"));
         }
         catch (UsernameNotFoundException ex){
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponses.error("Invalid credentials.", "BAD_CREDENTIALS"));
         }
         catch (Exception ex){
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ex.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ApiResponses.error("Internal server error", "INTERNAL_SERVER_ERROR"));
         }
     }
 }

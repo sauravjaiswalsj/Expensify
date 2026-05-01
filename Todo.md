@@ -14,10 +14,12 @@ This file tracks **what to build next**, grouped by feature area, with optional 
 ### Current
 - Signup, login, verify, resend code, forgot/reset password exist.
 - JWT auth is integrated.
+- Auth responses use the standard API envelope with correlation IDs.
+- Signup and auth email side effects use Mongo-backed outbox events.
 
 ### TODO
-- [ ] `P0` Fix backend signup transaction consistency (avoid partial success + 500).
-- [ ] `P0` Return consistent response schema from all auth endpoints.
+- [x] `P0` Fix backend signup transaction consistency (avoid partial success + 500).
+- [x] `P0` Return consistent response schema from all auth endpoints.
 - [ ] `P0` Add rate-limits for login/signup/resend endpoints.
 - [ ] `P1` Add refresh-token flow and token rotation.
 - [ ] `P1` Add logout-all-sessions support.
@@ -35,11 +37,12 @@ This file tracks **what to build next**, grouped by feature area, with optional 
 ### Current
 - Add expense API and UI exist.
 - Data is persisted successfully.
+- Authenticated list, edit, and delete flows exist in the backend and dashboard UI.
 
 ### TODO
-- [ ] `P0` Add backend endpoint to fetch expenses by authenticated user.
-- [ ] `P0` Add frontend list/history page for expenses.
-- [ ] `P0` Add edit and delete expense endpoints + UI actions.
+- [x] `P0` Add backend endpoint to fetch expenses by authenticated user.
+- [x] `P0` Add frontend list/history page for expenses.
+- [x] `P0` Add edit and delete expense endpoints + UI actions.
 - [ ] `P1` Add pagination, sorting, and server-side filtering (date/category/payment type).
 - [ ] `P1` Add bulk import (CSV) with validation report.
 - [ ] `P2` Add recurring expenses support.
@@ -55,13 +58,13 @@ This file tracks **what to build next**, grouped by feature area, with optional 
 ## 3) Dashboard & Insights
 
 ### Current
-- Dashboard UI exists but stats are placeholders.
+- Dashboard UI is bound to live expense and summary data.
 
 ### TODO
-- [ ] `P0` Build summary APIs (total spend, monthly spend, category count, transaction count).
-- [ ] `P0` Bind dashboard cards to live backend data.
-- [ ] `P1` Add charts (monthly trend, category split, payment method split).
-- [ ] `P1` Add period switchers (7d / 30d / 90d / custom).
+- [x] `P0` Build summary APIs (total spend, monthly spend, category count, transaction count).
+- [x] `P0` Bind dashboard cards to live backend data.
+- [x] `P1` Add charts (monthly trend, category split, payment method split).
+- [x] `P1` Add period switchers (7d / 30d / 90d / custom).
 - [ ] `P2` Add downloadable reports (PDF/CSV).
 
 ### AI Integration Ideas
@@ -76,10 +79,11 @@ This file tracks **what to build next**, grouped by feature area, with optional 
 
 ### Current
 - Email verification and resend flows are present.
+- Verification and reset emails are processed through outbox events with retry/failure state.
 
 ### TODO
-- [ ] `P0` Add delivery logging for verification/reset emails (sent/fail reason).
-- [ ] `P0` Add retry strategy + dead-letter handling for mail failures.
+- [x] `P0` Add delivery logging for verification/reset emails (sent/fail reason).
+- [x] `P0` Add retry strategy + dead-letter handling for mail failures.
 - [ ] `P1` Add notification preferences (email on/off by type).
 - [ ] `P1` Add in-app notification center.
 - [ ] `P2` Add push notifications (web/mobile).
@@ -95,11 +99,13 @@ This file tracks **what to build next**, grouped by feature area, with optional 
 
 ### Current
 - JWT + Spring Security + validation + exceptions are in place.
+- API responses use a standard envelope and request correlation IDs.
+- Auth and expense mutation controllers emit structured audit logs.
 
 ### TODO
 - [ ] `P0` Move JWT storage from localStorage to secure HttpOnly cookie flow.
-- [ ] `P0` Add request/response audit logging for auth + expense mutations.
-- [ ] `P0` Standardize global error handling + correlation IDs.
+- [x] `P0` Add request/response audit logging for auth + expense mutations.
+- [x] `P0` Standardize global error handling + correlation IDs.
 - [ ] `P1` Add CSRF strategy for cookie-based auth.
 - [ ] `P1` Add account lockout policy for repeated failed logins.
 - [ ] `P2` Add backup/restore runbook and data retention policy.
@@ -129,9 +135,9 @@ This file tracks **what to build next**, grouped by feature area, with optional 
 ## 7) Suggested Execution Plan (Practical)
 
 ### Phase 1 (P0: stabilize core)
-- [ ] Live dashboard data (summary + list endpoints).
-- [ ] Fix signup/verification reliability and email delivery visibility.
-- [ ] Improve error consistency and auth/session security baseline.
+- [x] Live dashboard data (summary + list endpoints).
+- [x] Fix signup/verification reliability and email delivery visibility.
+- [x] Improve error consistency and auth/session security baseline.
 
 ### Phase 2 (P1: product value)
 - [ ] Filters/charts/reports and better notification controls.

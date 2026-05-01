@@ -25,6 +25,15 @@ export interface User {
   updatedAt: string;
 }
 
+export interface UserRegistrationResponse {
+  username: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: Role;
+  accountVerified: boolean;
+}
+
 export interface Expense {
   _id?: string;
   username?: string;
@@ -36,6 +45,18 @@ export interface Expense {
   createdAt?: string;
   updatedAt?: string;
   currency: Currency;
+}
+
+export interface ExpenseSummary {
+  totalSpend: number;
+  monthlySpend: number;
+  categoryCount: number;
+  transactionCount: number;
+}
+
+export interface AiInsightResponse {
+  reply: string;
+  aiGenerated: boolean;
 }
 
 export interface LoginDTO {
@@ -75,8 +96,13 @@ export interface ResponseHeader {
 }
 
 export interface ApiResponse<T> {
-  header: ResponseHeader;
-  methodBody: T;
+  success?: boolean;
+  message?: string;
+  data?: T;
+  errorCode?: string;
+  correlationId?: string;
+  header?: ResponseHeader;
+  methodBody?: T;
 }
 
 export const EXPENSE_CATEGORIES = [

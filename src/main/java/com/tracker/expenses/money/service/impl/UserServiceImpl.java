@@ -6,9 +6,12 @@ import com.tracker.expenses.money.dto.userdto.LoginDTO;
 import com.tracker.expenses.money.dto.userdto.PasswordResetDTO;
 import com.tracker.expenses.money.dto.userdto.UserDTO;
 import com.tracker.expenses.money.dto.userdto.VerifyUserDTO;
+import com.tracker.expenses.money.enums.EventType;
+import com.tracker.expenses.money.enums.OutboxStatus;
 import com.tracker.expenses.money.enums.Role;
 import com.tracker.expenses.money.exception.*;
-import com.tracker.expenses.money.service.EmailService;
+import com.tracker.expenses.money.model.OutboxEvent;
+import com.tracker.expenses.money.repository.OutboxEventRepository;
 import com.tracker.expenses.money.service.UserService;
 import com.tracker.expenses.money.dto.Response;
 import com.tracker.expenses.money.dto.ResponseHeader;
@@ -23,14 +26,14 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronizationAdapter;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import static com.tracker.expenses.money.common.GetCurrentTime.convertLocalDateTimeToDate;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -38,17 +41,25 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private UserRepository userRepository;
     @Autowired
-    private EmailService emailService;
-    @Autowired
     private PasswordEncoder passwordEncoder;
+    @Autowired
+    private OutboxEventRepository outboxEventRepository;
 
     private void isUserValid(User user) {
-        String username = user.getUsername().toLowerCase();
+        String username = user.getUsername();
         Validation.isUsernameValid(username);
-        if (userRepository.findByUsernameIgnoreCase(username) != null) {
-            throw new UserAlreadyExistsException("User already exists " + username);
-        }
         Validation.isEmailValid(user.getEmail());
+        User existingUser = userRepository.findByUsernameIgnoreCase(username);
+        User existingEmailUser = userRepository.findByEmail(user.getEmail());
+        if (existingUser != null && existingUser.isAccountVerified()){
+            throw new UserAlreadyExistsException("User with username " + username);
+        }
+        if (existingEmailUser != null && existingEmailUser.isAccountVerified()) {
+            throw new UserAlreadyExistsException("User with email " + user.getEmail());
+        }
+        if (existingUser != null && existingEmailUser != null && !existingUser.getId().equals(existingEmailUser.getId())) {
+            throw new UserAlreadyExistsException("Username and email belong to different pending accounts");
+        }
     }
 
     public User findByUsername(String username) {
@@ -64,52 +75,111 @@ public class UserServiceImpl implements UserService {
         email = email.toLowerCase();
         return userRepository.findByEmail(email);
     }
-
-    @Transactional
-    public Response<ResponseHeader, User> addUser(UserDTO userDTO) {
+    private User buildUser (UserDTO userDTO) {
         User user = new User(
                 userDTO.getUsername(),
                 userDTO.getPassword(),
                 userDTO.getFirstName(),
                 userDTO.getLastName(),
-                userDTO.getEmail());
+                userDTO.getEmail()
+        );
 
-        // Keep identity fields normalized across signup/login lookups.
-        user.setUsername(user.getUsername().toLowerCase());
-        user.setEmail(user.getEmail().toLowerCase());
-
-        isUserValid(user);
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
+        user.setUsername(user.getUsername().trim().toLowerCase(Locale.ROOT));
+        user.setEmail(user.getEmail().trim().toLowerCase(Locale.ROOT));
         user.setRole(Role.USER);
         user.setCreatedAt(convertLocalDateTimeToDate());
+        return user;
+
+    }
+    @Transactional
+    public Response<ResponseHeader, User> addUser(UserDTO userDTO) {
+        User user = buildUser(userDTO);
+
+        isUserValid(user);
+
+        User existingUser = userRepository.findByUsernameIgnoreCase(user.getUsername());
+        User existingEmailUser = userRepository.findByEmail(user.getEmail());
+        if (existingUser == null && existingEmailUser != null) {
+            throw new UserAlreadyExistsException("Email is already linked to a pending account");
+        }
+        if (existingUser != null) {
+            return refreshPendingSignup(existingUser, userDTO);
+        }
+
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
         user.setUpdatedAt(convertLocalDateTimeToDate());
         user.setAccountVerified(false);
+
         user.setVerificationCode(GenerateCodes.generateVerificationCode());
         user.setVerificationCodeExpiresAt(LocalDateTime.now().plusMinutes(15));
+
         var res = userRepository.save(user);
-        TransactionSynchronizationManager.registerSynchronization(
-                new TransactionSynchronizationAdapter() {
-                    @Override
-                    public void afterCommit() {
-                        emailService.sendWelcomeEmail(user.getEmail());
-                        emailService.sendVerificationEmail(user.getEmail(), user.getVerificationCode());
-                    }
-                });
-        try {
-            emailService.sendWelcomeEmail(user.getEmail());
-            emailService.sendVerificationEmail(user.getEmail(), user.getVerificationCode());
-        } catch (Exception ex) {
-            log.error("Error sending verification email to user {}", user.getUsername());
-            emailService.sendVerificationEmail(user.getEmail(), user.getVerificationCode());
-        }
+        createUserRegisteredOutboxEvent(res, EventType.USER_REGISTERED);
+
         return new Response<>(new ResponseHeader(HttpStatus.CREATED, "User created successfully"), res);
+    }
+
+    private Response<ResponseHeader, User> refreshPendingSignup(User existingUser, UserDTO userDTO) {
+        existingUser.setFirstName(userDTO.getFirstName());
+        existingUser.setLastName(userDTO.getLastName());
+        existingUser.setEmail(userDTO.getEmail().trim().toLowerCase(Locale.ROOT));
+        existingUser.setPassword(passwordEncoder.encode(userDTO.getPassword()));
+        existingUser.setVerificationCode(GenerateCodes.generateVerificationCode());
+        existingUser.setVerificationCodeExpiresAt(LocalDateTime.now().plusMinutes(15));
+        existingUser.setUpdatedAt(convertLocalDateTimeToDate());
+
+        User updatedUser = userRepository.save(existingUser);
+        retirePendingUserRegisteredEvents(updatedUser);
+        createUserRegisteredOutboxEvent(updatedUser,EventType.USER_REGISTERED);
+
+        return new Response<>(new ResponseHeader(HttpStatus.OK, "Pending account updated. Verification code will be resent"), updatedUser);
+    }
+
+    private OutboxEvent generateOutboxEvent(User user, EventType eventType) {
+        OutboxEvent event = new OutboxEvent();
+        event.setEventType(eventType);
+        event.setAggregateType("USER");
+        event.setAggregateId(user.getId());
+        event.setOutboxStatus(OutboxStatus.PENDING);
+        event.setAttempts(0);
+        event.setMaxAttempts(5);
+        event.setNextAttemptAt(convertLocalDateTimeToDate());
+        event.setCreatedAt(convertLocalDateTimeToDate());
+        event.setUpdatedAt(convertLocalDateTimeToDate());
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("username", user.getUsername());
+        payload.put("email", user.getEmail());
+        if (user.getVerificationCode() != null) {
+            payload.put("verificationCode", user.getVerificationCode());
+        }
+        event.setPayload(payload);
+        return event;
+    }
+    private void createUserRegisteredOutboxEvent(User user, EventType eventType) {
+        OutboxEvent event = generateOutboxEvent(user, eventType);
+        outboxEventRepository.save(event);
+    }
+
+    private void retirePendingUserRegisteredEvents(User user) {
+        List<OutboxEvent> staleEvents = outboxEventRepository.findByAggregateTypeAndAggregateIdAndEventTypeAndOutboxStatusIn(
+                "USER",
+                user.getId(),
+                EventType.USER_REGISTERED,
+                List.of(OutboxStatus.PENDING, OutboxStatus.PROCESSING)
+        );
+
+        for (OutboxEvent staleEvent : staleEvents) {
+            staleEvent.setOutboxStatus(OutboxStatus.FAILED);
+            staleEvent.setLastError("Superseded by newer verification code");
+            staleEvent.setUpdatedAt(convertLocalDateTimeToDate());
+        }
+        outboxEventRepository.saveAll(staleEvents);
     }
 
     public List<User> findAll() {
         return userRepository.findAll();
     }
 
-    // TODO: add email based verification
     @Transactional
     public Response<ResponseHeader, Void> verifyUser(VerifyUserDTO verifyUserDTO) {
         if (verifyUserDTO.getUsername() == null || verifyUserDTO.getUsername().isEmpty()) {
@@ -132,9 +202,10 @@ public class UserServiceImpl implements UserService {
             user.setVerificationCode(null);
             user.setVerificationCodeExpiresAt(null);
             user.setUpdatedAt(convertLocalDateTimeToDate());
-            userRepository.save(user);
+            var response = userRepository.save(user);
 
-            emailService.sendVerificationSuccessEmail(user.getEmail());
+            createUserRegisteredOutboxEvent(response, EventType.VERIFY_EMAIL_SENT);
+
             return new Response<>(new ResponseHeader(HttpStatus.OK, "User successfully verified"));
         }
 
@@ -153,7 +224,8 @@ public class UserServiceImpl implements UserService {
         } catch (UsernameNotFoundException ex) {
             return new Response<>(new ResponseHeader(HttpStatus.NOT_FOUND, ex.getMessage()), userdata);
         } catch (Exception ex) {
-            return new Response<>(new ResponseHeader(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage()), userdata);
+            log.error("Unexpected error updating password", ex);
+            return new Response<>(new ResponseHeader(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred"), userdata);
         }
     }
 
@@ -184,10 +256,12 @@ public class UserServiceImpl implements UserService {
         } catch (InvalidEmailException ex) {
             return new Response<>(new ResponseHeader(HttpStatus.BAD_REQUEST, ex.getMessage()), user);
         } catch (Exception ex) {
-            return new Response<>(new ResponseHeader(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage()), user);
+            log.error("Unexpected error updating user", ex);
+            return new Response<>(new ResponseHeader(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred"), user);
         }
     }
 
+    @Transactional
     public Response<ResponseHeader, Void> resendVerificationCode(String username) {
         if (username == null || username.isEmpty()) {
             throw new UsernameNotFoundException("Username is empty");
@@ -199,21 +273,19 @@ public class UserServiceImpl implements UserService {
         if (user.isAccountVerified()) {
             throw new UserAlreadyVerifiedException("User already verified");
         }
-        try {
-            if (user.getVerificationCodeExpiresAt().isBefore(LocalDateTime.now())) {
-                user.setVerificationCode(GenerateCodes.generateVerificationCode());
-            }
-            String code = user.getVerificationCode() == null || user.getVerificationCode().isEmpty()
-                    ? GenerateCodes.generateVerificationCode()
-                    : user.getVerificationCode();
-            emailService.sendVerificationEmail(user.getEmail(), code);
-        } catch (Exception ex) {
-            log.error("Error sending verification email. Retrying...");
-            emailService.sendVerificationEmail(user.getEmail(), user.getVerificationCode());
-        } finally {
-            user.setVerificationCodeExpiresAt(LocalDateTime.now().plusMinutes(15));
-            userRepository.save(user);
+        if (user.getVerificationCodeExpiresAt() == null || user.getVerificationCodeExpiresAt().isBefore(LocalDateTime.now())) {
+            user.setVerificationCode(GenerateCodes.generateVerificationCode());
         }
+        String code = user.getVerificationCode() == null || user.getVerificationCode().isEmpty()
+                ? GenerateCodes.generateVerificationCode()
+                : user.getVerificationCode();
+        user.setVerificationCode(code);
+        user.setVerificationCodeExpiresAt(LocalDateTime.now().plusMinutes(15));
+        userRepository.save(user);
+
+        OutboxEvent event = generateOutboxEvent(user, EventType.VERIFY_EMAIL_REQUESTED);
+        outboxEventRepository.save(event);
+
         return new Response<>(new ResponseHeader(HttpStatus.OK, "Verification code resent successfully"));
     }
 
@@ -285,6 +357,7 @@ public class UserServiceImpl implements UserService {
         }
     }
 
+    @Transactional
     public Response<ResponseHeader, Void> forgetUserPassword(String username) {
         User user = findByUsername(username);
         if (user == null) {
@@ -294,15 +367,14 @@ public class UserServiceImpl implements UserService {
         user.setVerificationCode(code);
         user.setVerificationCodeExpiresAt(LocalDateTime.now().plusHours(1));
         userRepository.save(user);
-        try {
-            emailService.sendPasswordResetEmail(user.getEmail(), code);
-        } catch (RuntimeException ex) {
-            log.error("Email Retrying...");
-            emailService.sendPasswordResetEmail(user.getEmail(), code);
-        }
+
+        OutboxEvent event = generateOutboxEvent(user, EventType.PASSWORD_RESET_REQUESTED);
+        outboxEventRepository.save(event);
+
         return new Response<>(new ResponseHeader(HttpStatus.OK, "Password reset code sent successfully"));
     }
 
+    @Transactional
     public Response<ResponseHeader, Void> resetForgetPassword(PasswordResetDTO passwordResetDTO) {
         User user = findByUsername(passwordResetDTO.getUsername());
         if (user == null) {
@@ -326,12 +398,8 @@ public class UserServiceImpl implements UserService {
         user.setUpdatedAt(convertLocalDateTimeToDate());
         userRepository.save(user);
 
-        try {
-            emailService.sendResetSuccessEmail(user.getEmail());
-        } catch (Exception ex) {
-            log.error("Sending Email. Retrying...");
-            emailService.sendResetSuccessEmail(user.getEmail());
-        }
+        outboxEventRepository.save(generateOutboxEvent(user, EventType.PASSWORD_RESET_SUCCESS));
+
         return new Response<>(new ResponseHeader(HttpStatus.OK, "Password successfully reset"));
 
     }

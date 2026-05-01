@@ -2,6 +2,7 @@ package com.tracker.expenses.money.service.impl;
 
 import com.tracker.expenses.money.dto.Response;
 import com.tracker.expenses.money.dto.ResponseHeader;
+import com.tracker.expenses.money.dto.responsedto.ExpenseSummaryDTO;
 import com.tracker.expenses.money.exception.InvalidExpenseException;
 import com.tracker.expenses.money.model.Expense;
 import com.tracker.expenses.money.repository.ExpenseRepository;
@@ -12,16 +13,25 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 import static com.tracker.expenses.money.common.GetCurrentTime.convertLocalDateTimeToDate;
 
 @Slf4j
 @Service
 public class ExpenseServiceImpl implements ExpenseService {
+    private final ExpenseRepository expenseRepository;
+
     @Autowired
-    private ExpenseRepository expenseRepository;
+    public ExpenseServiceImpl(ExpenseRepository expenseRepository) {
+        this.expenseRepository = expenseRepository;
+    }
 
     @Override
     @Transactional
@@ -42,7 +52,8 @@ public class ExpenseServiceImpl implements ExpenseService {
         }catch (InvalidExpenseException e){
             return new Response<>(new ResponseHeader(HttpStatus.CONFLICT, e.getMessage()), expense);
         } catch (Exception ex){
-            return new Response<>(new ResponseHeader(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage()), expense);
+            log.error("Unexpected error adding expense", ex);
+            return new Response<>(new ResponseHeader(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred"), expense);
         }
     }
 
@@ -51,6 +62,9 @@ public class ExpenseServiceImpl implements ExpenseService {
     public Response<ResponseHeader, List<Expense>> getExpenseByUserId(String userId) {
         try {
             log.info("Getting expenses for user: {}", userId);
+            if (userId == null || userId.isBlank()) {
+                throw new InvalidExpenseException("Username is required");
+            }
             String username = userId.trim().toLowerCase(Locale.ROOT);
             List<Expense> expenseList = expenseRepository.findByUsername(username);
 
@@ -58,12 +72,76 @@ public class ExpenseServiceImpl implements ExpenseService {
             return new Response<>(new ResponseHeader(HttpStatus.OK, "Expenses retrieved successfully"), expenseList);
         }catch (InvalidExpenseException e){
             log.warn("Error retrieving expenses: {}", e.getMessage());
-            return new Response<>(new ResponseHeader(HttpStatus.NOT_FOUND, e.getMessage()), null);
+            return new Response<>(new ResponseHeader(HttpStatus.BAD_REQUEST, e.getMessage()), null);
         }
         catch (Exception ex){
             log.error("Unexpected error retrieving expenses", ex);
-            return new Response<>(new ResponseHeader(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage()), null);
+            return new Response<>(new ResponseHeader(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred"), null);
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Response<ResponseHeader, ExpenseSummaryDTO> getExpenseSummaryByUserId(String userId) {
+        try {
+            if (userId == null || userId.isBlank()) {
+                throw new InvalidExpenseException("Username is required");
+            }
+
+            String username = userId.trim().toLowerCase(Locale.ROOT);
+            List<Expense> expenses = expenseRepository.findByUsername(username);
+            LocalDate currentMonth = LocalDate.now(ZoneId.systemDefault()).withDayOfMonth(1);
+
+            BigDecimal totalSpend = expenses.stream()
+                    .map(this::amountOrZero)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            BigDecimal monthlySpend = expenses.stream()
+                    .filter(expense -> isInCurrentMonth(expense, currentMonth))
+                    .map(this::amountOrZero)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            long categoryCount = expenses.stream()
+                    .map(Expense::getCategory)
+                    .filter(Objects::nonNull)
+                    .map(String::trim)
+                    .filter(category -> !category.isBlank())
+                    .map(category -> category.toLowerCase(Locale.ROOT))
+                    .distinct()
+                    .count();
+
+            ExpenseSummaryDTO summary = new ExpenseSummaryDTO(
+                    totalSpend,
+                    monthlySpend,
+                    categoryCount,
+                    expenses.size()
+            );
+
+            return new Response<>(new ResponseHeader(HttpStatus.OK, "Expense summary retrieved successfully"), summary);
+        } catch (InvalidExpenseException e) {
+            log.warn("Error retrieving expense summary: {}", e.getMessage());
+            return new Response<>(new ResponseHeader(HttpStatus.BAD_REQUEST, e.getMessage()), null);
+        } catch (Exception ex) {
+            log.error("Unexpected error retrieving expense summary", ex);
+            return new Response<>(new ResponseHeader(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred"), null);
+        }
+    }
+
+    private BigDecimal amountOrZero(Expense expense) {
+        return expense.getAmount() == null ? BigDecimal.ZERO : expense.getAmount();
+    }
+
+    private boolean isInCurrentMonth(Expense expense, LocalDate currentMonth) {
+        Date expenseDate = expense.getDate() != null ? expense.getDate() : expense.getCreatedAt();
+        if (expenseDate == null) {
+            return false;
+        }
+
+        LocalDate expenseMonth = expenseDate
+                .toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate()
+                .withDayOfMonth(1);
+
+        return currentMonth.equals(expenseMonth);
     }
 
     @Override
@@ -91,7 +169,7 @@ public class ExpenseServiceImpl implements ExpenseService {
             return new Response<>(new ResponseHeader(HttpStatus.NOT_FOUND, e.getMessage()), expense);
         } catch (Exception ex) {
             log.error("Unexpected error deleting expense", ex);
-            return new Response<>(new ResponseHeader(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage()), expense);
+            return new Response<>(new ResponseHeader(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred"), expense);
         }
     }
 
@@ -105,7 +183,7 @@ public class ExpenseServiceImpl implements ExpenseService {
             if (username == null || username.isBlank()) {
                 throw new InvalidExpenseException("Username is required");
             }
-            if (expense.getAmount() <= 0) {
+            if (expense.getAmount() == null || expense.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
                 throw new InvalidExpenseException("Expense amount is invalid");
             }
 
@@ -131,7 +209,7 @@ public class ExpenseServiceImpl implements ExpenseService {
             return new Response<>(new ResponseHeader(HttpStatus.NOT_FOUND, e.getMessage()), expense);
         } catch (Exception ex) {
             log.error("Unexpected error updating expense", ex);
-            return new Response<>(new ResponseHeader(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage()), expense);
+            return new Response<>(new ResponseHeader(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred"), expense);
         }
     }
 

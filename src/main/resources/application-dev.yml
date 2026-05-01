@@ -28,6 +28,14 @@ security:
     secret-key: ${JWT_SECRET_KEY}
     expiration: 3600000
 
+ai:
+  xai:
+    api-key: ${XAI_API_KEY:}
+    model: ${XAI_MODEL:grok-4-fast-non-reasoning}
+    responses-url: ${XAI_RESPONSES_URL:https://api.x.ai/v1/responses}
+    max-output-tokens: ${AI_MAX_OUTPUT_TOKENS:220}
+    max-expenses: ${AI_MAX_EXPENSES:40}
+
 server:
   port: 8080
 
@@ -49,5 +57,3 @@ logging:
 #        mail=DEBUG:
 springdoc:
   show-login-endpoint: true
-
-
