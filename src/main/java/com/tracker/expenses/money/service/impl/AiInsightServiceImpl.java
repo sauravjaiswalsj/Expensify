@@ -205,6 +205,10 @@ public class AiInsightServiceImpl implements AiInsightService {
                 .orElse("INR");
 
         String lowerPrompt = prompt.toLowerCase(Locale.ROOT);
+        if (mentionsFoodConcern(lowerPrompt) || mentionsEmotionalConcern(lowerPrompt)) {
+            return "No, you should not stop eating. Food is essential, and feeling guilty about spending is a sign to plan gently, not punish yourself. Your Food & Dining spend is " + currency + " " + String.format(Locale.US, "%.2f", categoryTotal(expenses, "food")) + "; try setting a simple weekly food budget or separating groceries from restaurants so you can adjust without skipping meals.";
+        }
+
         if (lowerPrompt.contains("recent") || lowerPrompt.contains("latest")) {
             String recentLine = expenses.stream()
                     .sorted(Comparator.comparing(this::expenseTime).reversed())
@@ -219,6 +223,30 @@ public class AiInsightServiceImpl implements AiInsightService {
         }
 
         return "You have logged " + expenses.size() + " expenses totaling " + currency + " " + String.format(Locale.US, "%.2f", total) + ". Your heaviest category is " + topCategory.getKey() + " at " + currency + " " + String.format(Locale.US, "%.2f", topCategory.getValue()) + ".";
+    }
+
+    private boolean mentionsFoodConcern(String prompt) {
+        return prompt.contains("eat")
+                || prompt.contains("eating")
+                || prompt.contains("food")
+                || prompt.contains("meal")
+                || prompt.contains("dining");
+    }
+
+    private boolean mentionsEmotionalConcern(String prompt) {
+        return prompt.contains("sad")
+                || prompt.contains("guilty")
+                || prompt.contains("stress")
+                || prompt.contains("worried")
+                || prompt.contains("anxious")
+                || prompt.contains("stop");
+    }
+
+    private double categoryTotal(List<Expense> expenses, String categoryNeedle) {
+        return expenses.stream()
+                .filter(expense -> cleanCategory(expense.getCategory()).toLowerCase(Locale.ROOT).contains(categoryNeedle))
+                .mapToDouble(Expense::getAmount)
+                .sum();
     }
 
     private String cleanCategory(String category) {

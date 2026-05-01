@@ -93,6 +93,25 @@ function buildInsightReply(input: string, expenses: Expense[]): string {
     return `Your highest category right now is ${topCategory?.[0] ?? "Uncategorized"}, contributing about ${currencySymbol(expenses[0]?.currency)}${(topCategory?.[1] ?? 0).toFixed(2)} of tracked spend.`;
   }
 
+  if (
+    lower.includes("sad") ||
+    lower.includes("guilty") ||
+    lower.includes("anxious") ||
+    lower.includes("worried") ||
+    lower.includes("stop eating") ||
+    lower.includes("food")
+  ) {
+    const foodTotal = Object.entries(
+      expenses.reduce<Record<string, number>>((acc, item) => {
+        const key = item.category || "Uncategorized";
+        acc[key] = (acc[key] ?? 0) + (item.amount || 0);
+        return acc;
+      }, {})
+    ).find(([category]) => category.toLowerCase().includes("food"))?.[1] ?? 0;
+
+    return `No, you should not stop eating. Food is essential, and feeling guilty about spending is a sign to plan gently, not punish yourself. Your Food & Dining spend is ${currencySymbol(expenses[0]?.currency)}${foodTotal.toFixed(2)}; try a weekly food budget or separating groceries from restaurants so you can adjust without skipping meals.`;
+  }
+
   if (lower.includes("recent") || lower.includes("latest")) {
     const recentLine = recent
       .map((item) => `${item.category || "Uncategorized"} ${currencySymbol(item.currency)}${(item.amount || 0).toFixed(2)}`)
