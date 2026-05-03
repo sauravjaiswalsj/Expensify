@@ -1,5 +1,6 @@
 package com.tracker.expenses.money.infra;
 
+import com.tracker.expenses.money.common.LogSanitizer;
 import com.tracker.expenses.money.enums.EventType;
 import com.tracker.expenses.money.enums.OutboxStatus;
 import com.tracker.expenses.money.model.OutboxEvent;
@@ -49,12 +50,24 @@ public class OutboxPoller {
                 .set("outboxStatus", OutboxStatus.PROCESSING)
                 .set("updatedAt", now);
 
-        return mongoTemplate.findAndModify(
+        OutboxEvent event = mongoTemplate.findAndModify(
                 query,
                 update,
                 FindAndModifyOptions.options().returnNew(true),
                 OutboxEvent.class
         );
+
+        if (event != null) {
+            log.info("Claimed outbox event id={} type={} aggregateType={} aggregateId={} attempts={}/{}",
+                    event.getId(),
+                    event.getEventType(),
+                    event.getAggregateType(),
+                    event.getAggregateId(),
+                    event.getAttempts(),
+                    event.getMaxAttempts());
+        }
+
+        return event;
     }
 
     private void process(OutboxEvent event) {
@@ -69,6 +82,12 @@ public class OutboxPoller {
             if (email == null || email.isBlank()) {
                 throw new IllegalArgumentException("Outbox event email is missing");
             }
+
+            String emailHash = LogSanitizer.hashIdentifier(email);
+            log.info("Processing outbox event id={} type={} emailHash={}",
+                    event.getId(),
+                    event.getEventType(),
+                    emailHash);
 
             if (EventType.USER_REGISTERED.equals(event.getEventType())) {
                 if (code == null || code.isBlank()) {
@@ -102,6 +121,10 @@ public class OutboxPoller {
             event.setOutboxStatus(OutboxStatus.PROCESSED);
             event.setProcessedAt(new Date());
             outboxEventRepository.save(event);
+            log.info("Processed outbox event id={} type={} emailHash={}",
+                    event.getId(),
+                    event.getEventType(),
+                    emailHash);
         }
         catch (Exception ex){
             int attempts = event.getAttempts() + 1;
@@ -111,10 +134,24 @@ public class OutboxPoller {
 
             if (attempts >= event.getMaxAttempts()) {
                 event.setOutboxStatus(OutboxStatus.FAILED);
+                log.error("Outbox event id={} type={} failed permanently after {}/{} attempts: {}",
+                        event.getId(),
+                        event.getEventType(),
+                        attempts,
+                        event.getMaxAttempts(),
+                        ex.getMessage(),
+                        ex);
             }
             else {
                 event.setOutboxStatus(OutboxStatus.PENDING);
                 event.setNextAttemptAt(nextRetry(attempts));
+                log.warn("Outbox event id={} type={} failed attempt {}/{}; retryAt={}: {}",
+                        event.getId(),
+                        event.getEventType(),
+                        attempts,
+                        event.getMaxAttempts(),
+                        event.getNextAttemptAt(),
+                        ex.getMessage());
             }
 
             outboxEventRepository.save(event);

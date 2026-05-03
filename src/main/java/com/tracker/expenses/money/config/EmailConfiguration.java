@@ -1,5 +1,6 @@
 package com.tracker.expenses.money.config;
 
+import com.tracker.expenses.money.common.LogSanitizer;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,7 +38,7 @@ public class EmailConfiguration {
     @PostConstruct
     public void validateConfiguration() {
         log.debug("Email Configuration: ");
-        log.debug("Username: {}", emailUsername);
+        log.debug("Username hash: {}", LogSanitizer.hashIdentifier(emailUsername));
         log.debug("Host: {}", host);
         log.debug("Port: {}", port);
         log.debug("Protocol: {}", protocol);

@@ -1,30 +1,44 @@
 package com.tracker.expenses.money.service.impl;
 
+import com.tracker.expenses.money.common.LogSanitizer;
 import com.tracker.expenses.money.service.EmailService;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 
+@Slf4j
 @Service
 public class EmailServiceImpl implements EmailService {
 
     @Autowired
     private JavaMailSender emailSender;
 
+    @Value("${spring.mail.username}")
+    private String fromAddress;
+
     private void emailSender(String to, String subject, String body){
         MimeMessage message = emailSender.createMimeMessage();
         MimeMessageHelper helper = new MimeMessageHelper(message);
         try{
+            helper.setFrom(fromAddress);
             helper.setTo(to);
             helper.setSubject(subject);
             helper.setText(body, true);
 
             emailSender.send(message);
+            log.info("Email sent subject=\"{}\" emailHash={}", subject, LogSanitizer.hashIdentifier(to));
         }
-        catch (MessagingException e){
+        catch (MessagingException | MailException e){
+            log.warn("Email send failed subject=\"{}\" emailHash={}: {}",
+                    subject,
+                    LogSanitizer.hashIdentifier(to),
+                    e.getMessage());
             throw new RuntimeException("Failed to send email", e);
         }
     }

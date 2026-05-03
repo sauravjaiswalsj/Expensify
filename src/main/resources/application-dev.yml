@@ -44,8 +44,8 @@ logging:
     root: INFO
     com.tracker.expenses.money: DEBUG
     org.springframework.web: INFO
-    org.springframework.data.mongodb: DEBUG
-    com.mongodb: DEBUG
+    org.springframework.data.mongodb: INFO
+    com.mongodb: INFO
 
 #logging:
 #  level:
